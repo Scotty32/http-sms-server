@@ -1,91 +1,83 @@
 <template>
   <v-app>
-    <v-divider v-if="$store.getters.isLocal" class="py-1 warning"></v-divider>
+    <v-divider v-if="store.isLocal" class="py-1 bg-warning"></v-divider>
     <v-navigation-drawer
-      v-if="$vuetify.breakpoint.lgAndUp && hasDrawer"
+      v-if="display.lgAndUp.value && hasDrawer"
       :width="400"
-      app
-      fixed
+      permanent
     >
       <template #prepend>
-        <v-divider
-          v-if="$store.getters.isLocal"
-          class="py-1 warning"
-        ></v-divider>
-        <message-thread-header></message-thread-header>
+        <v-divider v-if="store.isLocal" class="py-1 bg-warning"></v-divider>
+        <MessageThreadHeader />
         <div class="overflow-y-auto v-navigation-drawer__message-thread">
-          <message-thread></message-thread>
+          <MessageThread />
         </div>
       </template>
     </v-navigation-drawer>
-    <v-main :class="{ 'has-drawer': hasDrawer && $vuetify.breakpoint.lgAndUp }">
-      <toast></toast>
-      <Nuxt v-if="$store.getters.authStateChanged" />
-      <loading-dashboard v-else></loading-dashboard>
+    <v-main :class="{ 'has-drawer': hasDrawer && display.lgAndUp.value }">
+      <Toast />
+      <NuxtPage v-if="store.isAuthStateChanged" />
+      <LoadingDashboard v-else />
     </v-main>
   </v-app>
 </template>
 
-<script lang="ts">
-import { Vue, Component } from 'vue-property-decorator'
+<script setup lang="ts">
+import { useDisplay } from 'vuetify'
 import Pusher from 'pusher-js'
-import { setAuthHeader } from '~/plugins/axios'
 
-@Component
-export default class DefaultLayout extends Vue {
-  poller: number | null = null
-  canPoll: boolean = false
+const store = useAppStore()
+const route = useRoute()
+const display = useDisplay()
+const config = useRuntimeConfig()
 
-  get hasDrawer(): boolean {
-    return ['threads', 'threads-id'].includes(this.$route.name ?? '')
-  }
+const hasDrawer = computed(() =>
+  ['threads', 'threads-id'].includes(route.name as string ?? ''),
+)
 
-  mounted() {
-    setTimeout(() => {
-      const pusher = new Pusher(this.$config.pusherKey, {
-        cluster: this.$config.pusherCluster,
-      })
+let poller: ReturnType<typeof setInterval> | null = null
+let canPoll = false
 
-      const channel = pusher.subscribe(this.$store.getters.getAuthUser.id)
-      channel.bind('phone.updated', () => {
-        this.canPoll = true
-      })
+onMounted(() => {
+  setTimeout(() => {
+    if (!store.getAuthUser) return
 
-      this.startPoller()
-    }, 10_000) // delay so that the auth user is present
-  }
+    const pusher = new Pusher(config.public.pusherKey as string, {
+      cluster: config.public.pusherCluster as string,
+    })
 
-  beforeDestroy(): void {
-    if (this.poller) {
-      clearInterval(this.poller)
+    const channel = pusher.subscribe(store.getAuthUser.id)
+    channel.bind('phone.updated', () => {
+      canPoll = true
+    })
+
+    startPoller()
+  }, 10_000)
+})
+
+onBeforeUnmount(() => {
+  if (poller) clearInterval(poller)
+})
+
+function startPoller() {
+  poller = setInterval(async () => {
+    if (!canPoll || store.getAuthUser == null) return
+
+    store.setPolling(true)
+
+    const promises: Promise<any>[] = []
+    if (store.getAuthUser && store.getOwner) {
+      promises.push(
+        store.loadPhones(true),
+        store.loadThreads(),
+        store.getHeartbeatAction(),
+      )
     }
-  }
+    canPoll = false
+    await Promise.all(promises)
 
-  startPoller() {
-    this.poller = window.setInterval(async () => {
-      if (!this.canPoll || this.$store.getters.getAuthUser == null) {
-        return
-      }
-
-      await this.$store.dispatch('setPolling', true)
-
-      const promises = []
-      if (this.$store.getters.getAuthUser && this.$store.getters.getOwner) {
-        setAuthHeader((await this.$fire.auth.currentUser?.getIdToken()) ?? '')
-        promises.push(
-          this.$store.dispatch('loadPhones', true),
-          this.$store.dispatch('loadThreads'),
-          this.$store.dispatch('getHeartbeat'),
-        )
-      }
-      this.canPoll = false
-      await Promise.all(promises)
-
-      setTimeout(() => {
-        this.$store.dispatch('setPolling', false)
-      }, 1000)
-    }, 10_000)
-  }
+    setTimeout(() => store.setPolling(false), 1000)
+  }, 10_000)
 }
 </script>
 
@@ -99,7 +91,7 @@ export default class DefaultLayout extends Vue {
   }
 
   .has-drawer {
-    .v-snack {
+    .v-snackbar {
       padding-left: 400px;
     }
   }
@@ -107,22 +99,18 @@ export default class DefaultLayout extends Vue {
   .v-navigation-drawer__message-thread {
     height: calc(100vh - 120px);
 
-    /* width */
     &::-webkit-scrollbar {
       width: 8px;
     }
-
-    /* Track */
     &::-webkit-scrollbar-track {
       background: #363636;
     }
-
-    /* Handle */
     &::-webkit-scrollbar-thumb {
       background: #666666;
       border-radius: 8px;
     }
   }
+
   code.hljs {
     font-size: 16px;
   }
@@ -137,9 +125,5 @@ export default class DefaultLayout extends Vue {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
   transform: rotate(-90deg);
-  -moz-transform: rotate(-90deg);
-  -ms-transform: rotate(-90deg);
-  -o-transform: rotate(-90deg);
-  -webkit-transform: rotate(-90deg);
 }
 </style>

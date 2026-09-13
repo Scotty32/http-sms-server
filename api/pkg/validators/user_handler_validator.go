@@ -48,6 +48,21 @@ func (validator *UserHandlerValidator) ValidateUpdate(_ context.Context, request
 	return v.ValidateStruct()
 }
 
+// ValidateWebhookURLTest validates requests.UserWebhookURLTest
+func (validator *UserHandlerValidator) ValidateWebhookURLTest(_ context.Context, request requests.UserWebhookURLTest) url.Values {
+	v := govalidator.New(govalidator.Options{
+		Data: &request,
+		Rules: govalidator.MapData{
+			"webhook_url": []string{
+				"required",
+				"url",
+			},
+		},
+	})
+
+	return v.ValidateStruct()
+}
+
 // ValidatePaymentInvoice validates the requests.UserPaymentInvoice request
 func (validator *UserHandlerValidator) ValidatePaymentInvoice(ctx context.Context, userID entities.UserID, request requests.UserPaymentInvoice) url.Values {
 	ctx, span, ctxLogger := validator.tracer.StartWithLogger(ctx, validator.logger)

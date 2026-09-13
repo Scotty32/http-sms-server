@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/NdoleStudio/httpsms/pkg/requests"
 	"github.com/NdoleStudio/httpsms/pkg/validators"
@@ -16,10 +17,11 @@ import (
 // UserHandler handles user http requests.
 type UserHandler struct {
 	handler
-	logger    telemetry.Logger
-	tracer    telemetry.Tracer
-	validator *validators.UserHandlerValidator
-	service   *services.UserService
+	logger         telemetry.Logger
+	tracer         telemetry.Tracer
+	validator      *validators.UserHandlerValidator
+	service        *services.UserService
+	webhookService *services.V2WebhookService
 }
 
 // NewUserHandler creates a new UserHandler
@@ -28,12 +30,14 @@ func NewUserHandler(
 	tracer telemetry.Tracer,
 	validator *validators.UserHandlerValidator,
 	service *services.UserService,
+	webhookService *services.V2WebhookService,
 ) (h *UserHandler) {
 	return &UserHandler{
-		logger:    logger.WithService(fmt.Sprintf("%T", h)),
-		tracer:    tracer,
-		validator: validator,
-		service:   service,
+		logger:         logger.WithService(fmt.Sprintf("%T", h)),
+		tracer:         tracer,
+		validator:      validator,
+		service:        service,
+		webhookService: webhookService,
 	}
 }
 
@@ -48,6 +52,8 @@ func (h *UserHandler) RegisterRoutes(router fiber.Router, middlewares ...fiber.H
 	router.Delete("/v1/users/subscription", h.computeRoute(middlewares, h.cancelSubscription)...)
 	router.Get("/v1/users/subscription/payments", h.computeRoute(middlewares, h.subscriptionPayments)...)
 	router.Post("/v1/users/subscription/invoices/:subscriptionInvoiceID", h.computeRoute(middlewares, h.subscriptionInvoice)...)
+	router.Post("/v1/users/me/webhook-url/test", h.computeRoute(middlewares, h.TestWebhookURL)...)
+	router.Post("/v1/users/me/webhook-secret/rotate", h.computeRoute(middlewares, h.RotateWebhookSecret)...)
 }
 
 // Show returns an entities.User
@@ -201,6 +207,9 @@ func (h *UserHandler) subscriptionUpdateURL(c *fiber.Ctx) error {
 	authUser := h.userFromContext(c)
 
 	url, err := h.service.GetSubscriptionUpdateURL(ctx, authUser.ID)
+	if stacktrace.GetCode(err) == services.ErrCodeNoActiveSubscription {
+		return h.responseUnprocessableEntity(c, nil, "You don't have an active subscription")
+	}
 	if err != nil {
 		msg := fmt.Sprintf("cannot get user with ID [%s]", authUser.ID)
 		ctxLogger.Error(stacktrace.Propagate(err, msg))
@@ -230,6 +239,9 @@ func (h *UserHandler) cancelSubscription(c *fiber.Ctx) error {
 	authUser := h.userFromContext(c)
 
 	err := h.service.InitiateSubscriptionCancel(ctx, authUser.ID)
+	if stacktrace.GetCode(err) == services.ErrCodeNoActiveSubscription {
+		return h.responseUnprocessableEntity(c, nil, "You don't have an active subscription")
+	}
 	if err != nil {
 		msg := fmt.Sprintf("cannot get user with ID [%s]", authUser.ID)
 		ctxLogger.Error(stacktrace.Propagate(err, msg))
@@ -271,6 +283,86 @@ func (h *UserHandler) DeleteAPIKey(c *fiber.Ctx) error {
 	}
 
 	return h.responseOK(c, "API Key rotated successfully", user)
+}
+
+// TestWebhookURL sends a test payload to a candidate webhook URL so it can be validated before it is saved
+// @Summary      Test a webhook URL
+// @Description  Sends a {"type":"test"} payload to the given URL and reports whether it responded successfully. Does not save the URL.
+// @Security	 ApiKeyAuth
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        payload   	body 		requests.UserWebhookURLTest  			true 	"Webhook URL to test"
+// @Success      200 		{object}	responses.OkString
+// @Failure      400		{object}	responses.BadRequest
+// @Failure 	 401    	{object}	responses.Unauthorized
+// @Failure      422		{object}	responses.UnprocessableEntity
+// @Failure      500		{object}	responses.InternalServerError
+// @Router       /users/me/webhook-url/test [post]
+func (h *UserHandler) TestWebhookURL(c *fiber.Ctx) error {
+	ctx, span, ctxLogger := h.tracer.StartFromFiberCtxWithLogger(c, h.logger)
+	defer span.End()
+
+	var request requests.UserWebhookURLTest
+	if err := c.BodyParser(&request); err != nil {
+		msg := fmt.Sprintf("cannot marshall params [%s] into %T", c.OriginalURL(), request)
+		ctxLogger.Warn(stacktrace.Propagate(err, msg))
+		return h.responseBadRequest(c, err)
+	}
+
+	if errors := h.validator.ValidateWebhookURLTest(ctx, request.Sanitize()); len(errors) != 0 {
+		msg := fmt.Sprintf("validation errors [%s], while testing webhook url [%+#v]", spew.Sdump(errors), request)
+		ctxLogger.Warn(stacktrace.NewError(msg))
+		return h.responseUnprocessableEntity(c, errors, "validation errors while testing webhook url")
+	}
+
+	user, err := h.service.GetByID(ctx, h.userIDFomContext(c))
+	if err != nil {
+		msg := fmt.Sprintf("cannot get user with ID [%s]", h.userIDFomContext(c))
+		ctxLogger.Error(stacktrace.Propagate(err, msg))
+		return h.responseInternalServerError(c)
+	}
+
+	secret := ""
+	if user.WebhookSecret != nil {
+		secret = *user.WebhookSecret
+	}
+
+	if err := h.webhookService.TestWebhookURL(ctx, request.WebhookURL, secret); err != nil {
+		if stacktrace.GetCode(err) == services.ErrCodeWebhookTestFailed {
+			cause, _, _ := strings.Cut(err.Error(), "\n --- at")
+			return h.responseUnprocessableEntity(c, nil, fmt.Sprintf("could not verify webhook url: %s", cause))
+		}
+		msg := fmt.Sprintf("cannot test webhook url with params [%+#v]", request)
+		ctxLogger.Error(stacktrace.Propagate(err, msg))
+		return h.responseInternalServerError(c)
+	}
+
+	return h.responseOK(c, "webhook url tested successfully", nil)
+}
+
+// RotateWebhookSecret generates a new webhook signing secret for the currently authenticated user
+// @Summary      Rotate the user's webhook signing secret
+// @Description  Generates a new secret used to sign the x-webhook-signature header on outgoing delivery webhooks
+// @Security	 ApiKeyAuth
+// @Tags         Users
+// @Produce      json
+// @Success      200 		{object}	responses.UserResponse
+// @Failure 	 401    	{object}	responses.Unauthorized
+// @Failure      500		{object}	responses.InternalServerError
+// @Router       /users/me/webhook-secret/rotate [post]
+func (h *UserHandler) RotateWebhookSecret(c *fiber.Ctx) error {
+	ctx, span, ctxLogger := h.tracer.StartFromFiberCtxWithLogger(c, h.logger)
+	defer span.End()
+
+	user, err := h.service.RotateWebhookSecret(ctx, h.userIDFomContext(c))
+	if err != nil {
+		msg := fmt.Sprintf("cannot rotate webhook secret for user with ID [%s]", h.userIDFomContext(c))
+		ctxLogger.Error(stacktrace.Propagate(err, msg))
+		return h.responseInternalServerError(c)
+	}
+
+	return h.responseOK(c, "webhook secret rotated successfully", user)
 }
 
 // subscriptionPayments returns the last 10 payments of the currently authenticated user

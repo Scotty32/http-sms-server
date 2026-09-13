@@ -6,7 +6,7 @@
           style="border-radius: 4px"
           alt="blog post header image"
           :src="
-            require('@/static/img/blog/forward-incoming-sms-from-phone-to-webhook/header.png')
+            '/img/blog/forward-incoming-sms-from-phone-to-webhook/header.png'
           "
         ></v-img>
         <h1
@@ -49,7 +49,7 @@
             style="border-radius: 4px"
             alt="httpsms.com settings page"
             :src="
-              require('@/static/img/blog/forward-incoming-sms-from-phone-to-webhook/settings.png')
+              '/img/blog/forward-incoming-sms-from-phone-to-webhook/settings.png'
             "
           ></v-img>
         </vue-glow>
@@ -80,7 +80,7 @@
           height="800"
           contain
           :src="
-            require('@/static/img/blog/forward-incoming-sms-from-phone-to-webhook/android-app.png')
+            '/img/blog/forward-incoming-sms-from-phone-to-webhook/android-app.png'
           "
         ></v-img>
         <h3 class="text-h4 mt-12">Step 3: Set up a webhook</h3>
@@ -105,7 +105,7 @@
             style="border-radius: 4px"
             alt="httpSMS webhook configuration"
             :src="
-              require('@/static/img/blog/forward-incoming-sms-from-phone-to-webhook/webhook.png')
+              '/img/blog/forward-incoming-sms-from-phone-to-webhook/webhook.png'
             "
           ></v-img>
         </vue-glow>
@@ -140,6 +140,7 @@
 </template>
 
 <script lang="ts">
+import authorImage from '@/assets/img/arnold.png'
 import { mdiTwitter } from '@mdi/js'
 export default {
   name: 'ForwardIncomingSMSFromPhoneToWebhook',
@@ -147,7 +148,7 @@ export default {
   data() {
     return {
       mdiTwitter,
-      authorImage: require('@/assets/img/arnold.png'),
+      authorImage,
       authorName: 'Acho Arnold',
       postDate: 'April 08, 2023',
       readTime: '5 min read',

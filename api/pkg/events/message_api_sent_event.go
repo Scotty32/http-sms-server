@@ -15,6 +15,7 @@ const EventTypeMessageAPISent = "message.api.sent"
 type MessageAPISentPayload struct {
 	MessageID         uuid.UUID       `json:"message_id"`
 	UserID            entities.UserID `json:"user_id"`
+	AppID             *uuid.UUID      `json:"app_id,omitempty"`
 	Owner             string          `json:"owner"`
 	RequestID         *string         `json:"request_id"`
 	MaxSendAttempts   uint            `json:"max_send_attempts"`

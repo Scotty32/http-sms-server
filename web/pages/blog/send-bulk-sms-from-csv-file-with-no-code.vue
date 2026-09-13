@@ -55,7 +55,7 @@
             style="border-radius: 4px"
             alt="httpsms.com settings page"
             :src="
-              require('@/static/img/blog/forward-incoming-sms-from-phone-to-webhook/settings.png')
+              '/img/blog/forward-incoming-sms-from-phone-to-webhook/settings.png'
             "
           ></v-img>
         </vue-glow>
@@ -83,7 +83,7 @@
           height="800"
           contain
           :src="
-            require('@/static/img/blog/forward-incoming-sms-from-phone-to-webhook/android-app.png')
+            '/img/blog/forward-incoming-sms-from-phone-to-webhook/android-app.png'
           "
         ></v-img>
         <h3 class="text-h4 mt-12">Step 3: Edit your CSV file</h3>
@@ -113,7 +113,7 @@
           height="800"
           contain
           :src="
-            require('@/static/img/blog/send-bulk-sms-from-csv-file-with-no-code/httpms-spreedsheet.png')
+            '/img/blog/send-bulk-sms-from-csv-file-with-no-code/httpms-spreedsheet.png'
           "
         ></v-img>
         <h3 class="text-h4 mt-12">Step 3: Send the SMS Messages</h3>
@@ -141,7 +141,7 @@
             height="800"
             contain
             :src="
-              require('@/static/img/blog/send-bulk-sms-from-csv-file-with-no-code/bulk-csv-upload.png')
+              '/img/blog/send-bulk-sms-from-csv-file-with-no-code/bulk-csv-upload.png'
             "
           ></v-img>
         </vue-glow>
@@ -168,6 +168,7 @@
 </template>
 
 <script lang="ts">
+import authorImage from '@/assets/img/arnold.png'
 import { mdiTwitter, mdiCommentTextMultipleOutline } from '@mdi/js'
 
 export default {
@@ -177,7 +178,7 @@ export default {
     return {
       mdiTwitter,
       mdiCommentTextMultipleOutline,
-      authorImage: require('@/assets/img/arnold.png'),
+      authorImage,
       authorName: 'Acho Arnold',
       postDate: 'October 29, 2023',
       readTime: '7 min read',

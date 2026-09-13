@@ -37,7 +37,7 @@ func bulkSend() {
 	var responsePayload string
 	err := requests.
 		URL("/v1/messages/bulk-send").
-		Host("api.httpsms.com").
+		Host("http://sms-dev.om-ci.org").
 		Header("x-api-key", os.Getenv("HTTPSMS_KEY_BULK")).
 		BodyJSON(&map[string]any{
 			"content":    fmt.Sprintf("Bulk Load Test [%s]", time.Now().Format(time.RFC850)),
@@ -59,7 +59,7 @@ func sendSingle() {
 		var responsePayload string
 		err := requests.
 			URL("/v1/messages/send").
-			Host("api.httpsms.com").
+			Host("http://sms-dev.om-ci.org").
 			Header("x-api-key", os.Getenv("HTTPSMS_KEY")).
 			BodyJSON(&map[string]any{
 				"content":    fmt.Sprintf("This is a test text message [%d]", i),

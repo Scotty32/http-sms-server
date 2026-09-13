@@ -236,6 +236,10 @@ export interface EntitiesUser {
   timezone: string
   /** @example "2022-06-05T14:26:10.303278+03:00" */
   updated_at: string
+  /** @example "https://example.com/sms-delivery" */
+  webhook_url?: string
+  /** @example "whsec_DGW8NwQp7mxKaSZ72Xq9v6xxxxx" */
+  webhook_secret?: string
 }
 
 export interface EntitiesWebhook {

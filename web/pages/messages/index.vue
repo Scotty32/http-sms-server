@@ -1,15 +1,13 @@
 <template>
-  <v-container fluid class="pa-0" :fill-height="$vuetify.breakpoint.lgAndUp">
+  <v-container fluid class="pa-0" :style="{ height: display.lgAndUp.value ? '100vh' : 'auto' }">
     <div class="w-full h-full">
-      <v-app-bar height="60" :dense="$vuetify.breakpoint.mdAndDown" fixed>
-        <v-btn icon to="/threads">
-          <v-icon>{{ mdiArrowLeft }}</v-icon>
-        </v-btn>
-        <v-toolbar-title
-          >New Message
-          <v-icon x-small class="mx-2" color="primary">{{ mdiCircle }}</v-icon>
-          {{ $store.getters.getOwner | phoneNumber }}</v-toolbar-title
-        >
+      <v-app-bar height="60" :density="display.mdAndDown.value ? 'compact' : 'default'" location="top">
+        <v-btn :icon="mdiArrowLeft" to="/threads" />
+        <v-toolbar-title>
+          New Message
+          <v-icon size="x-small" class="mx-2" color="primary" :icon="mdiCircle" />
+          {{ store.getOwner ? formatPhoneNumber(store.getOwner) : '' }}
+        </v-toolbar-title>
       </v-app-bar>
       <v-container class="mt-16">
         <v-row>
@@ -20,26 +18,26 @@
                 :disabled="sending"
                 :error="errors.has('to')"
                 :error-messages="errors.get('to')"
-                outlined
+                variant="outlined"
                 placeholder="Recipient phone number e.g +18005550199"
                 label="Phone Number"
-              ></v-text-field>
+              />
               <v-textarea
                 v-model="formContent"
                 :error="errors.has('content')"
                 :error-messages="errors.get('content')"
                 :disabled="sending"
-                outlined
+                variant="outlined"
                 placeholder="Enter your message here"
                 label="Content"
-              ></v-textarea>
+              />
               <v-btn
                 type="submit"
-                class="primary"
+                color="primary"
                 :disabled="sending"
-                :block="$vuetify.breakpoint.mdAndDown"
+                :block="display.mdAndDown.value"
               >
-                <v-icon>{{ mdiSend }}</v-icon>
+                <v-icon :icon="mdiSend" />
                 Send Message
               </v-btn>
             </v-form>
@@ -50,81 +48,54 @@
   </v-container>
 </template>
 
-<script>
-import { mdiArrowLeft, mdiSend, mdiSim, mdiCircle } from '@mdi/js'
-import axios from '@/plugins/axios'
+<script setup lang="ts">
+import { useDisplay } from 'vuetify'
+import { mdiArrowLeft, mdiSend, mdiCircle } from '@mdi/js'
+import { getAxios } from '~/plugins/axios'
+import { ErrorMessages } from '~/utils/errors'
+import { formatPhoneNumber } from '~/plugins/filters'
 
-export default {
-  name: 'MessagesIndex',
-  middleware: ['auth'],
-  data() {
-    return {
-      mdiArrowLeft,
-      mdiSend,
-      mdiCircle,
-      mdiSim,
-      simOptions: [
-        { title: 'Default', code: 'DEFAULT' },
-        { title: 'SIM 1', code: 'SIM1' },
-        { title: 'SIM 2', code: 'SIM2' },
-      ],
-      simSelected: { title: 'Default', code: 'DEFAULT' },
-      sending: false,
-      formPhoneNumber: '',
-      formContent: '',
-      errors: new Map(),
-    }
-  },
-  head() {
-    return {
-      title: 'New Message - Http SMS',
-    }
-  },
+definePageMeta({ middleware: ['auth'] })
+useHead({ title: 'New Message - Http SMS' })
 
-  methods: {
-    sendMessage() {
-      this.errors = new Map()
-      this.sending = true
-      axios
-        .post('/v1/messages/send', {
-          to: this.formPhoneNumber,
-          from: this.$store.getters.getOwner,
-          content: this.formContent,
-          sim: this.simSelected.code,
-        })
-        .then(() => {
-          this.$store.dispatch('addNotification', {
-            message: 'Message Sent!',
-            type: 'success',
-          })
-          this.$router.push({ name: 'threads' })
-        })
-        .catch((axiosError) => {
-          const errors = new Map()
-          const response = axiosError.response
-          if (response.data.data.content) {
-            errors.set('content', response.data.data.content)
-          }
-          if (response.data.data.to) {
-            errors.set(
-              'to',
-              response.data.data.to.map((x) =>
-                x.replace('to field', 'phone number field'),
-              ),
-            )
-          }
-          if (response.data.data.from) {
-            this.$store.dispatch('addNotification', {
-              message: response.data.data.from[0],
-              type: 'error',
-            })
-          }
-          this.errors = errors
-        })
-        .finally(() => {
-          this.sending = false
-        })
-    },
-  },
+const store = useAppStore()
+const router = useRouter()
+const display = useDisplay()
+
+const sending = ref(false)
+const formPhoneNumber = ref('')
+const formContent = ref('')
+const errors = ref(new ErrorMessages())
+
+async function sendMessage() {
+  errors.value = new ErrorMessages()
+  sending.value = true
+  const axios = getAxios()
+  axios
+    .post('/v1/messages/send', {
+      to: formPhoneNumber.value,
+      from: store.getOwner,
+      content: formContent.value,
+      sim: 'DEFAULT',
+    })
+    .then(() => {
+      store.addNotification({ message: 'Message Sent!', type: 'success' })
+      router.push({ name: 'threads' })
+    })
+    .catch((axiosError: any) => {
+      const newErrors = new ErrorMessages()
+      const response = axiosError.response
+      if (response.data.data.content) newErrors.addMany('content', response.data.data.content)
+      if (response.data.data.to) {
+        newErrors.addMany('to', response.data.data.to.map((x: string) =>
+          x.replace('to field', 'phone number field'),
+        ))
+      }
+      if (response.data.data.from) {
+        store.addNotification({ message: response.data.data.from[0], type: 'error' })
+      }
+      errors.value = newErrors
+    })
+    .finally(() => { sending.value = false })
 }
 </script>

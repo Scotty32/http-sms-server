@@ -81,6 +81,32 @@ func (repository *gormUserRepository) RotateAPIKey(ctx context.Context, userID e
 	return user, nil
 }
 
+func (repository *gormUserRepository) RotateWebhookSecret(ctx context.Context, userID entities.UserID) (*entities.User, error) {
+	ctx, span := repository.tracer.Start(ctx)
+	defer span.End()
+
+	secret, err := repository.generateAPIKey(48)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, fmt.Sprintf("cannot generate webhook secret for user [%s]", userID))
+	}
+
+	user := new(entities.User)
+	err = crdbgorm.ExecuteTx(ctx, repository.db, nil,
+		func(tx *gorm.DB) error {
+			return tx.WithContext(ctx).Model(user).
+				Clauses(clause.Returning{}).
+				Where("id = ?", userID).
+				Update("webhook_secret", "whsec_"+secret).Error
+		},
+	)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		msg := fmt.Sprintf("user with ID [%s] does not exist", userID)
+		return nil, repository.tracer.WrapErrorSpan(span, stacktrace.PropagateWithCode(err, ErrCodeNotFound, msg))
+	}
+
+	return user, nil
+}
+
 func (repository *gormUserRepository) LoadBySubscriptionID(ctx context.Context, subscriptionID string) (*entities.User, error) {
 	ctx, span := repository.tracer.Start(ctx)
 	defer span.End()

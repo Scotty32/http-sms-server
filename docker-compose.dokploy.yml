@@ -1,0 +1,120 @@
+# Production compose file for Dokploy.
+#
+# Reuses the existing production Dockerfiles as-is (api/Dockerfile, web/Dockerfile) —
+# no build-time secrets are baked in for the API; the web app's public Firebase/config
+# keys are baked in from web/.env.production at build time (see DOKPLOY_DEPLOY.md).
+#
+# All ${VARS} below are filled in from the "Environment" tab of this Compose app in
+# Dokploy, which writes them to a .env file next to this compose file automatically.
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - httpsms_postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 5s
+
+  redis:
+    image: redis:latest
+    command: redis-server
+    volumes:
+      - httpsms_redis_data:/var/lib/redis
+    networks:
+      - internal
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  api:
+    build:
+      context: ./api
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-}
+    expose:
+      - "8000"
+    volumes:
+      - httpsms_api_logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      ENV: production
+      GCP_PROJECT_ID: ${GCP_PROJECT_ID}
+      USE_HTTP_LOGGER: "true"
+      LOG_FILE: /app/logs/api.log
+      EVENTS_QUEUE_TYPE: redis
+      EVENTS_QUEUE_NAME: events-local
+      EVENTS_QUEUE_ENDPOINT: http://localhost:8000/v1/events
+      EVENTS_QUEUE_USER_API_KEY: ${EVENTS_QUEUE_USER_API_KEY}
+      EVENTS_QUEUE_USER_ID: ${EVENTS_QUEUE_USER_ID}
+      FIREBASE_CREDENTIALS: ${FIREBASE_CREDENTIALS}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-httpSMS}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      APP_URL: ${APP_URL}
+      APP_NAME: ${APP_NAME:-httpSMS}
+      APP_PORT: "8000"
+      SWAGGER_HOST: ${SWAGGER_HOST}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_URL_DEDICATED: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://@redis:6379
+      UPTRACE_DSN: ${UPTRACE_DSN:-}
+      PUSHER_APP_ID: ${PUSHER_APP_ID:-}
+      PUSHER_KEY: ${PUSHER_KEY:-}
+      PUSHER_SECRET: ${PUSHER_SECRET:-}
+      PUSHER_CLUSTER: ${PUSHER_CLUSTER:-}
+      SMS_WEBHOOK_SECRET: ${SMS_WEBHOOK_SECRET}
+      WEBHOOK_TEST_ALLOW_PRIVATE_IPS: "false"
+      JWT_SECRET: ${JWT_SECRET}
+      SESSION_DURATION: ${SESSION_DURATION:-720h}
+    networks:
+      - internal
+      - dokploy-network
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./web
+    expose:
+      - "3000"
+    depends_on:
+      - api
+    environment:
+      NUXT_TELEMETRY_DISABLED: "1"
+    networks:
+      - dokploy-network
+    restart: unless-stopped
+
+networks:
+  # Internal-only network: postgres/redis are never reachable from outside this stack.
+  internal:
+  # Shared network managed by Dokploy — required so its Traefik proxy can route
+  # requests to the api/web containers once you attach a Domain to each in the UI.
+  dokploy-network:
+    external: true
+
+volumes:
+  httpsms_postgres_data:
+  httpsms_redis_data:
+  httpsms_api_logs:

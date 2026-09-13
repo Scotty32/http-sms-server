@@ -3,17 +3,14 @@ FROM node:lts-alpine as build
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml ./
-
-# Install pnpm
-RUN npm install -g pnpm
+COPY package.json package-lock.json ./
 
 # install python
 RUN apk add --no-cache python3
 
-RUN pnpm install
+RUN npm install
 COPY . .
-RUN pnpm run generate
+RUN npm run generate
 
 # production stage
 FROM nginx:stable-alpine as production

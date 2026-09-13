@@ -1,21 +1,21 @@
 <template>
   <div>
     <v-container>
-      <v-row :class="{ 'py-16': $vuetify.breakpoint.lgAndUp }">
+      <v-row :class="{ 'py-16': display.lgAndUp.value }">
         <v-col
           cols="12"
           md="6"
           :class="{
-            'text-center pt-16': $vuetify.breakpoint.mdAndDown,
-            'py-16': $vuetify.breakpoint.lgAndUp,
+            'text-center pt-16': display.mdAndDown.value,
+            'py-16': display.lgAndUp.value,
           }"
         >
           <h1
             class="text-h2 font-weight-bold pb-1 gradient-header"
             :class="{
-              'mt-16': $vuetify.breakpoint.lgAndUp,
-              'mt-10': $vuetify.breakpoint.mdOnly,
-              'mt-8': $vuetify.breakpoint.smAndDown,
+              'mt-16': display.lgAndUp.value,
+              'mt-10': display.md.value,
+              'mt-8': display.smAndDown.value,
             }"
           >
             Convert your Android phone into an SMS gateway.
@@ -25,7 +25,7 @@
             phone to send and receive SMS messages via a simple programmable API
             with end-to-end encryption.
           </h2>
-          <div :class="{ 'text-center': $vuetify.breakpoint.mdAndDown }">
+          <div :class="{ 'text-center': display.mdAndDown.value }">
             <v-btn
               color="primary"
               large
@@ -33,7 +33,7 @@
               class="mt-4 mb-4"
               :to="{ name: 'login' }"
             >
-              <v-icon v-if="$vuetify.breakpoint.lgAndUp" left>{{
+              <v-icon v-if="display.lgAndUp.value" left>{{
                 mdiSend
               }}</v-icon>
               Get Started
@@ -44,7 +44,7 @@
               class="mt-4 mb-4 ml-4"
               href="https://sandbox.httpsms.com"
             >
-              <v-icon v-if="$vuetify.breakpoint.lgAndUp" left color="#ffe500">
+              <v-icon v-if="display.lgAndUp.value" left color="#ffe500">
                 {{ mdiCreation }}
               </v-icon>
               Live Demo
@@ -56,7 +56,7 @@
           </p>
           <div
             class="mt-4"
-            :class="{ 'text-center': $vuetify.breakpoint.mdAndDown }"
+            :class="{ 'text-center': display.mdAndDown.value }"
           >
             <v-icon color="success">
               {{ mdiCheckCircle }}
@@ -67,7 +67,7 @@
             </v-icon>
             100% Open Source
           </div>
-          <div v-if="$vuetify.breakpoint.xl" class="mt-4">
+          <div v-if="display.xl.value" class="mt-4">
             <a href="https://www.uneed.best/tool/httpsmscom">
               <img
                 src="https://www.uneed.best/POTD1A.png"
@@ -77,13 +77,13 @@
             </a>
           </div>
           <v-divider
-            v-if="$vuetify.breakpoint.mdAndDown"
+            v-if="display.mdAndDown.value"
             class="mt-6 mr-16 success"
-            :class="{ 'ml-16': $vuetify.breakpoint.mdAndDown }"
+            :class="{ 'ml-16': display.mdAndDown.value }"
           ></v-divider>
         </v-col>
         <v-col
-          v-if="$vuetify.breakpoint.mdAndUp"
+          v-if="display.mdAndUp.value"
           cols="12"
           md="6"
           class="py-16"
@@ -93,7 +93,7 @@
             max-height="700"
             max-width="98%"
             contain
-            :src="require('assets/img/writing-code-phone.svg')"
+            src="~/assets/img/writing-code-phone.svg"
           ></v-img>
         </v-col>
       </v-row>
@@ -142,7 +142,7 @@
               class="mb-4"
               max-height="400"
               contain
-              :src="require('assets/img/bulk-sms-template.png')"
+              src="~/assets/img/bulk-sms-template.png"
             ></v-img>
           </v-col>
         </v-row>
@@ -176,7 +176,7 @@
               class="mb-4"
               max-height="400"
               contain
-              :src="require('assets/img/zapier-logo.svg')"
+              src="~/assets/img/zapier-logo.svg"
             ></v-img>
           </v-col>
         </v-row>
@@ -205,7 +205,7 @@
               class="mb-4"
               max-height="300"
               contain
-              :src="require('assets/img/connection.svg')"
+              src="~/assets/img/connection.svg"
             ></v-img>
           </v-col>
         </v-row>
@@ -233,7 +233,7 @@
               class="mb-4"
               max-height="300"
               contain
-              :src="require('assets/img/queue.svg')"
+              src="~/assets/img/queue.svg"
             ></v-img>
           </v-col>
         </v-row>
@@ -252,7 +252,7 @@
               class="mb-4"
               max-height="300"
               contain
-              :src="require('assets/img/alert.svg')"
+              src="~/assets/img/alert.svg"
             ></v-img>
           </v-col>
         </v-row>
@@ -267,7 +267,7 @@
               </h5>
               <a
                 class="text-decoration-none"
-                :href="$store.getters.getAppData.githubUrl"
+                :href="store.getAppData.githubUrl"
               >
                 <img
                   alt="GitHub Repo stars"
@@ -281,7 +281,7 @@
               class="mb-4"
               max-height="400"
               contain
-              :src="require('assets/img/httpsms-github.png')"
+              src="~/assets/img/httpsms-github.png"
             ></v-img>
           </v-col>
         </v-row>
@@ -312,7 +312,7 @@
               class="mb-4"
               max-height="300"
               contain
-              :src="require('assets/img/mobile-encryption.svg')"
+              src="~/assets/img/mobile-encryption.svg"
             ></v-img>
           </v-col>
         </v-row>
@@ -339,7 +339,7 @@
               class="mb-4"
               max-height="300"
               contain
-              :src="require('assets/img/manage-phones.svg')"
+              src="~/assets/img/manage-phones.svg"
             ></v-img>
           </v-col>
         </v-row>
@@ -365,7 +365,7 @@
               class="mb-4"
               max-height="300"
               contain
-              :src="require('assets/img/schedule-messages.svg')"
+              src="~/assets/img/schedule-messages.svg"
             ></v-img>
           </v-col>
         </v-row>
@@ -404,9 +404,9 @@
                       <a
                         download
                         class="font-weight-bold text-decoration-none"
-                        :href="$store.getters.getAppData.appDownloadUrl"
+                        :href="store.getAppData.appDownloadUrl"
                         @click="
-                          $store.dispatch('addNotification', {
+                          store.addNotification({
                             type: 'info',
                             message: 'Downloading the httpSMS Android App',
                           })
@@ -426,9 +426,9 @@
                       HTTP API. You can find the documentation on
                       <a
                         class="text-decoration-none"
-                        :href="$store.getters.getAppData.documentationUrl"
+                        :href="store.getAppData.documentationUrl"
                       >
-                        {{ $store.getters.getAppData.documentationUrl }}
+                        {{ store.getAppData.documentationUrl }}
                       </a>
                     </v-card-text>
                   </v-card>
@@ -438,55 +438,55 @@
             <v-col
               cols="12"
               md="7"
-              :class="{ 'pt-16 mb-16mb-16': $vuetify.breakpoint.mdAndUp }"
+              :class="{ 'pt-16 mb-16mb-16': display.mdAndUp.value }"
             >
               <div class="w-full mt-4">
                 <v-tabs v-model="selectedTab" show-arrows>
-                  <v-tab href="#javascript">
+                  <v-tab value="javascript">
                     <v-icon color="#efd81d" class="mr-1">{{
                       mdiLanguageJavascript
                     }}</v-icon>
                     Javascript
                   </v-tab>
-                  <v-tab href="#php">
+                  <v-tab value="php">
                     <v-icon color="#777bb3" class="mr-2">{{
                       mdiLanguagePhp
                     }}</v-icon>
                     PHP
                   </v-tab>
-                  <v-tab href="#python">
+                  <v-tab value="python">
                     <v-icon color="#ffffff" class="mr-2">{{
                       mdiLanguagePython
                     }}</v-icon>
                     Python
                   </v-tab>
-                  <v-tab href="#go">
+                  <v-tab value="go">
                     <v-icon color="#00aed8" class="mr-2">{{
                       mdiLanguageGo
                     }}</v-icon>
                     Go
                   </v-tab>
-                  <v-tab href="#java">
+                  <v-tab value="java">
                     <v-icon color="#0c89c7" class="mr-2">{{
                       mdiLanguageJava
                     }}</v-icon>
                     Java
                   </v-tab>
-                  <v-tab href="#curl">
+                  <v-tab value="curl">
                     <v-icon color="primary" class="mr-2">{{
                       mdiPowershell
                     }}</v-icon>
                     cURL
                   </v-tab>
-                  <v-tab href="#c-sharp">
+                  <v-tab value="c-sharp">
                     <v-icon color="#68217a" class="mr-2">{{
                       mdiLanguageCsharp
                     }}</v-icon>
                     c-sharp
                   </v-tab>
                 </v-tabs>
-                <v-tabs-items v-model="selectedTab">
-                  <v-tab-item value="javascript">
+                <v-window v-model="selectedTab">
+                  <v-window-item value="javascript">
                     <pre v-highlight class="javascript w-full mt-n2 mb-n13">
 <code>import HttpSms from 'httpsms'
 
@@ -502,8 +502,8 @@ client.messages.postSend({
 })
 </code>
                     </pre>
-                  </v-tab-item>
-                  <v-tab-item value="php">
+                  </v-window-item>
+                  <v-window-item value="php">
                     <pre v-highlight class="php w-full mt-n2 mb-n13">
 <code>&#60;?php
 $apiKey = "Get API Key from https://httpsms.com/settings";
@@ -523,20 +523,20 @@ $options = array(
 );
 
 $context  = stream_context_create( $options );
-$result = file_get_contents( "https://api.httpsms.com/v1/messages/send", false, $context );
+$result = file_get_contents( "http://sms-dev.om-ci.org/v1/messages/send", false, $context );
 
 echo $result;
 </code>
                     </pre>
-                  </v-tab-item>
-                  <v-tab-item value="python">
+                  </v-window-item>
+                  <v-window-item value="python">
                     <pre v-highlight class="python w-full mt-n2 mb-n13">
 <code>import requests
 import json
 
 api_key = "Get API Key from https://httpsms.com/settings"
 
-url = 'https://api.httpsms.com/v1/messages/send'
+url = 'http://sms-dev.om-ci.org/v1/messages/send'
 
 headers = {
     'x-api-key': api_key,
@@ -555,8 +555,8 @@ response = requests.post(url, headers=headers, data=json.dumps(payload))
 print(json.dumps(response.json(), indent=4))
 </code>
                     </pre>
-                  </v-tab-item>
-                  <v-tab-item value="go">
+                  </v-window-item>
+                  <v-window-item value="go">
                     <pre v-highlight class="go w-full mt-n2 mb-n13">
 <code>import "github.com/NdoleStudio/httpsms-go"
 
@@ -569,8 +569,8 @@ client.Messages.Send(context.Background(), &httpsms.MessageSendParams{
 })
 </code>
                     </pre>
-                  </v-tab-item>
-                  <v-tab-item value="java">
+                  </v-window-item>
+                  <v-window-item value="java">
                     <pre v-highlight class="java w-full mt-n2 mb-n13">
 <code>var client = HttpClient.newHttpClient();
 var apiKey = "Get API Key from https://httpsms.com/settings";
@@ -584,7 +584,7 @@ var payload = """
         """;
 
 var request = HttpRequest.newBuilder()
-        .uri(URI.create("https://api.httpsms.com/v1/messages/send"))
+        .uri(URI.create("http://sms-dev.om-ci.org/v1/messages/send"))
         .header("accept", "application/json")
         .header("Content-Type", "application/json")
         .header("x-api-key", apiKey)
@@ -595,10 +595,10 @@ var response = client.send(request, HttpResponse.BodyHandlers.ofString());
 System.out.println(response.body());
 </code>
                     </pre>
-                  </v-tab-item>
-                  <v-tab-item value="curl">
+                  </v-window-item>
+                  <v-window-item value="curl">
                     <pre v-highlight class="bash w-full mt-n2 mb-n13">
-<code>curl --location --request POST 'https://api.httpsms.com/v1/messages/send' \
+<code>curl --location --request POST 'http://sms-dev.om-ci.org/v1/messages/send' \
 --header 'x-api-key: Get API Key from https://httpsms.com/settings' \
 --header 'Content-Type: application/json' \
 --data-raw '{
@@ -608,14 +608,14 @@ System.out.println(response.body());
 }'
 </code>
                     </pre>
-                  </v-tab-item>
-                  <v-tab-item value="c-sharp">
+                  </v-window-item>
+                  <v-window-item value="c-sharp">
                     <pre v-highlight class="c-sharp w-full mt-n2 mb-n13">
 <code>var client = new HttpClient();
 client.DefaultRequestHeaders.Add("x-api-key", ""/* Get API Key from https://httpsms.com/settings */);
 
 var response = await client.PostAsync(
-    "https://api.httpsms.com/v1/messages/send",
+    "http://sms-dev.om-ci.org/v1/messages/send",
     new StringContent(
         JsonSerializer.Serialize(new {
             from = "+18005550199",
@@ -630,8 +630,8 @@ var response = await client.PostAsync(
 Console.WriteLine(await response.Content.ReadAsStringAsync());
 </code>
                     </pre>
-                  </v-tab-item>
-                </v-tabs-items>
+                  </v-window-item>
+                </v-window>
               </div>
             </v-col>
           </v-row>
@@ -673,7 +673,7 @@ Console.WriteLine(await response.Content.ReadAsStringAsync());
             <v-slider
               v-model="pricing"
               :tick-labels="
-                $vuetify.breakpoint.lgAndUp ? pricingLabelsFull : pricingLabels
+                display.lgAndUp.value ? pricingLabelsFull : pricingLabels
               "
               :max="4"
               step="1"
@@ -838,8 +838,8 @@ Console.WriteLine(await response.Content.ReadAsStringAsync());
           <v-col>
             <v-alert
               color="info"
-              :icon="$vuetify.breakpoint.mdAndUp ? mdiLightbulbOn60 : undefined"
-              :prominent="$vuetify.breakpoint.mdAndUp"
+              :icon="display.mdAndUp.value ? mdiLightbulbOn60 : undefined"
+              :prominent="display.mdAndUp.value"
               text
             >
               Feel free to <a href="mailto:arnold@httpsms.com">contact us</a> if
@@ -921,7 +921,7 @@ Console.WriteLine(await response.Content.ReadAsStringAsync());
                   <v-img
                     contain
                     max-width="64"
-                    :src="require('@/assets/img/logos/uneed.svg')"
+                    :src="uneedLogo"
                   />
                 </div>
               </div>
@@ -1022,8 +1022,8 @@ Console.WriteLine(await response.Content.ReadAsStringAsync());
   </div>
 </template>
 
-<script lang="ts">
-import Vue from 'vue'
+<script setup lang="ts">
+import uneedLogo from '@/assets/img/logos/uneed.svg'
 import {
   mdiGithub,
   mdiCheckCircle,
@@ -1055,67 +1055,35 @@ import {
   mdiPowershell,
   mdiLanguageGo,
 } from '@mdi/js'
+import { useDisplay } from 'vuetify'
 
-export default Vue.extend({
-  name: 'LandingPage',
-  layout: 'website',
-  data() {
-    return {
-      mdiMicrosoftExcel,
-      mdiWebhook,
-      mdiGithub,
-      mdiLabel,
-      mdiLightbulbOn60,
-      mdiCheckCircle,
-      mdiSend,
-      mdiGift,
-      mdiArrowRightThin,
-      mdiClockOutline,
-      mdiCreation,
-      mdiForum,
-      mdiNumeric1,
-      mdiNumeric2,
-      mdiNumeric3,
-      mdiTallyMark1,
-      mdiSale,
-      mdiTallyMark2,
-      mdiPlus,
-      mdiMinus,
-      mdiTallyMark3,
-      mdiLanguageJavascript,
-      mdiLanguagePhp,
-      mdiLanguagePython,
-      mdiLanguageCsharp,
-      mdiLanguageJava,
-      mdiCellphoneKey,
-      mdiPowershell,
-      mdiLanguageGo,
-      selectedTab: 'javascript',
-      yearlyPricing: false,
-      faqPanel: null,
-      pricing: 0,
-      pricingLabels: ['10K', '20K', '50K', '100K', '200K'],
-      pricingLabelsFull: ['10,000', '20,000', '50,000', '100,000', '200,000'],
-    }
-  },
-  computed: {
-    planMessages() {
-      const plan = this.pricingLabels[this.pricing]
-      return plan.replace('K', ',000')
-    },
-    planMonthlyPrice() {
-      const prices = [20, 35, 89, 175, 350]
-      return prices[this.pricing]
-    },
-    planYearlyPrice() {
-      const prices = [200, 350, 1068, 2100, 4200]
-      return prices[this.pricing]
-    },
-    planYearlyMonthlyPrice() {
-      const prices = [16.66, 29.16, 89, 175, 350]
-      return prices[this.pricing]
-    },
-  },
+definePageMeta({ layout: 'website' })
+
+const store = useAppStore()
+const display = useDisplay()
+
+const selectedTab = ref('javascript')
+const yearlyPricing = ref(false)
+const faqPanel = ref<number | null>(null)
+const pricing = ref(0)
+const pricingLabels = ['10K', '20K', '50K', '100K', '200K']
+const pricingLabelsFull = ['10,000', '20,000', '50,000', '100,000', '200,000']
+
+const planMessages = computed(() => {
+  const plan = pricingLabels[pricing.value]
+  return plan.replace('K', ',000')
+})
+const planMonthlyPrice = computed(() => {
+  const prices = [20, 35, 89, 175, 350]
+  return prices[pricing.value]
+})
+const planYearlyPrice = computed(() => {
+  const prices = [200, 350, 1068, 2100, 4200]
+  return prices[pricing.value]
+})
+const planYearlyMonthlyPrice = computed(() => {
+  const prices = [16.66, 29.16, 89, 175, 350]
+  return prices[pricing.value]
 })
 </script>
 

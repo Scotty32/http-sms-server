@@ -46,7 +46,7 @@ func (listener *MarketingListener) onUserAccountCreated(ctx context.Context, eve
 		return listener.tracer.WrapErrorSpan(span, stacktrace.Propagate(err, msg))
 	}
 
-	if err := listener.service.CreateContact(ctx, payload.UserID); err != nil {
+	if err := listener.service.CreateContact(ctx, payload.UserID, payload.UserEmail); err != nil {
 		msg := fmt.Sprintf("cannot create [contact] for user [%s] on [%s] event with ID [%s]", payload.UserID, event.Type(), event.ID())
 		return listener.tracer.WrapErrorSpan(span, stacktrace.Propagate(err, msg))
 	}

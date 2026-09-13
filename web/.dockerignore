@@ -1,3 +1,10 @@
 node_modules
-coverage
+.pnpm-store
+.npm
 .nuxt
+.output
+dist
+.git
+.vscode
+.idea
+.DS_Store

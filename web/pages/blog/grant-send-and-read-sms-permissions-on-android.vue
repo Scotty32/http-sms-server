@@ -44,7 +44,7 @@
           height="800"
           contain
           :src="
-            require('@/static/img/blog/grant-send-and-read-sms-permissions-on-android/app-info.png')
+            '/img/blog/grant-send-and-read-sms-permissions-on-android/app-info.png'
           "
         ></v-img>
         <h3 class="text-h4 mb-4 mt-16">Step 2: Allow Restricted Permissions</h3>
@@ -59,7 +59,7 @@
           height="800"
           contain
           :src="
-            require('@/static/img/blog/grant-send-and-read-sms-permissions-on-android/allow-restricted-settings.png')
+            '/img/blog/grant-send-and-read-sms-permissions-on-android/allow-restricted-settings.png'
           "
         ></v-img>
         <h3 class="text-h4 mb-4 mt-16">Step 3: Allow SMS Permissions</h3>
@@ -74,7 +74,7 @@
           height="800"
           contain
           :src="
-            require('@/static/img/blog/grant-send-and-read-sms-permissions-on-android/allow.png')
+            '/img/blog/grant-send-and-read-sms-permissions-on-android/allow.png'
           "
         ></v-img>
         <h3 class="text-h4 mt-12">Conclusion</h3>
@@ -97,6 +97,7 @@
 </template>
 
 <script lang="ts">
+import authorImage from '@/assets/img/arnold.png'
 import {
   mdiLanguageGo,
   mdiTwitter,
@@ -113,7 +114,7 @@ export default {
       mdiLanguageJavascript,
       mdiDotsVertical,
       selectedTab: 'javascript',
-      authorImage: require('@/assets/img/arnold.png'),
+      authorImage,
       authorName: 'Acho Arnold',
       postDate: 'February 18, 2025',
       readTime: '5 min read',

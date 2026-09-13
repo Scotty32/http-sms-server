@@ -47,6 +47,14 @@ func NewMessageService(
 	}
 }
 
+// LoadMessage loads a message by userID and messageID
+func (service *MessageService) LoadMessage(ctx context.Context, userID entities.UserID, messageID uuid.UUID) (*entities.Message, error) {
+	ctx, span := service.tracer.Start(ctx)
+	defer span.End()
+
+	return service.repository.Load(ctx, userID, messageID)
+}
+
 // MessageGetOutstandingParams parameters for sending a new message
 type MessageGetOutstandingParams struct {
 	Source       string
@@ -345,6 +353,7 @@ func (service *MessageService) handleMessageSentEvent(ctx context.Context, param
 		ID:        message.ID,
 		Owner:     message.Owner,
 		UserID:    message.UserID,
+		AppID:     message.AppID,
 		RequestID: message.RequestID,
 		Timestamp: params.Timestamp,
 		Contact:   message.Contact,
@@ -372,6 +381,7 @@ func (service *MessageService) handleMessageDeliveredEvent(ctx context.Context, 
 		ID:        message.ID,
 		Owner:     message.Owner,
 		UserID:    message.UserID,
+		AppID:     message.AppID,
 		RequestID: message.RequestID,
 		Timestamp: params.Timestamp,
 		Encrypted: message.Encrypted,
@@ -409,6 +419,7 @@ func (service *MessageService) handleMessageFailedEvent(ctx context.Context, par
 		Contact:      message.Contact,
 		RequestID:    message.RequestID,
 		UserID:       message.UserID,
+		AppID:        message.AppID,
 		Content:      message.Content,
 		SIM:          message.SIM,
 	})
@@ -434,6 +445,7 @@ type MessageSendParams struct {
 	SendAt            *time.Time
 	RequestID         *string
 	UserID            entities.UserID
+	AppID             *uuid.UUID
 	RequestReceivedAt time.Time
 }
 
@@ -449,6 +461,7 @@ func (service *MessageService) SendMessage(ctx context.Context, params MessageSe
 	eventPayload := events.MessageAPISentPayload{
 		MessageID:         uuid.New(),
 		UserID:            params.UserID,
+		AppID:             params.AppID,
 		Encrypted:         params.Encrypted,
 		MaxSendAttempts:   sendAttempts,
 		RequestID:         params.RequestID,
@@ -967,6 +980,7 @@ func (service *MessageService) storeSentMessage(ctx context.Context, payload eve
 		Owner:             payload.Owner,
 		Contact:           payload.Contact,
 		UserID:            payload.UserID,
+		AppID:             payload.AppID,
 		Content:           payload.Content,
 		RequestID:         payload.RequestID,
 		SIM:               payload.SIM,

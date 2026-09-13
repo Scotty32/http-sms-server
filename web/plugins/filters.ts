@@ -1,66 +1,61 @@
-import Vue from 'vue'
+// Standalone filter functions (Vue.filter removed in Vue 3)
+// Import these directly in components instead of using pipe syntax
 import { intervalToDuration, formatDuration } from 'date-fns'
 import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js'
 
-export const formatPhoneNumber = (value: string) => {
-  if (!isValidPhoneNumber(value)) {
-    return value
-  }
+export const formatPhoneNumber = (value: string): string => {
+  if (!isValidPhoneNumber(value)) return value
   const phoneNumber = parsePhoneNumber(value)
-  if (phoneNumber) {
-    return phoneNumber.formatInternational()
-  }
-  return value
+  return phoneNumber ? phoneNumber.formatInternational() : value
 }
 
-Vue.filter('phoneNumber', (value: string): string => {
-  return formatPhoneNumber(value)
-})
-
-Vue.filter('phoneCountry', (value: string): string => {
+export const formatPhoneCountry = (value: string): string => {
   const phoneNumber = parsePhoneNumber(value)
   if (phoneNumber && phoneNumber.country) {
-    // @ts-ignore
     const regionNames = new Intl.DisplayNames(undefined, { type: 'region' })
-    return regionNames.of(phoneNumber.country) ?? 'earth'
+    return regionNames.of(phoneNumber.country) ?? 'Earth'
   }
   return 'Earth'
-})
+}
 
-Vue.filter('timestamp', (value: string): string => {
-  return new Date(value).toLocaleString()
-})
+export const formatTimestamp = (value: string): string =>
+  new Date(value).toLocaleString()
 
-Vue.filter('money', (value: string): string => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(parseInt(value))
-})
+export const formatMoney = (value: string): string =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
+    parseInt(value),
+  )
 
-Vue.filter('decimal', (value: string): string => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'decimal',
-  }).format(parseInt(value))
-})
+export const formatDecimal = (value: string): string =>
+  new Intl.NumberFormat('en-US', { style: 'decimal' }).format(parseInt(value))
 
-Vue.filter('billingPeriod', (value: string): string => {
-  const options = {
+export const formatBillingPeriod = (value: string): string =>
+  new Date(value).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
-  }
-  // @ts-ignore
-  return new Date(value).toLocaleDateString('en-US', options)
-})
+  } as Intl.DateTimeFormatOptions)
 
-Vue.filter('humanizeTime', (value: string): string => {
+export const formatHumanizeTime = (value: string): string => {
   const durations = intervalToDuration({
     start: new Date(),
     end: new Date(value),
   })
   return formatDuration(durations)
-})
+}
 
-Vue.filter('capitalize', (value: string): string => {
-  return value.charAt(0).toUpperCase() + value.slice(1)
+export const formatCapitalize = (value: string): string =>
+  value.charAt(0).toUpperCase() + value.slice(1)
+
+// Nuxt plugin — provides $filters globally in templates
+export default defineNuxtPlugin((nuxtApp) => {
+  nuxtApp.vueApp.config.globalProperties.$filters = {
+    phoneNumber: formatPhoneNumber,
+    phoneCountry: formatPhoneCountry,
+    timestamp: formatTimestamp,
+    money: formatMoney,
+    decimal: formatDecimal,
+    billingPeriod: formatBillingPeriod,
+    humanizeTime: formatHumanizeTime,
+    capitalize: formatCapitalize,
+  }
 })

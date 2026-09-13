@@ -15,6 +15,7 @@ type MessageSendFailedPayload struct {
 	ID           uuid.UUID       `json:"id"`
 	ErrorMessage string          `json:"error_message"`
 	UserID       entities.UserID `json:"user_id"`
+	AppID        *uuid.UUID      `json:"app_id,omitempty"`
 	Owner        string          `json:"owner"`
 	RequestID    *string         `json:"request_id"`
 	Contact      string          `json:"contact"`

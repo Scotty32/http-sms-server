@@ -53,7 +53,7 @@
           height="800"
           contain
           :src="
-            require('@/static/img/blog/end-to-end-encryption-to-sms-messages/encryption-key-android.png')
+            '/img/blog/end-to-end-encryption-to-sms-messages/encryption-key-android.png'
           "
         ></v-img>
         <h3 class="text-h4 mb-4 mt-16">Encrypt your SMS message</h3>
@@ -179,7 +179,7 @@ client.Messages.Send(context.Background(), &httpsms.MessageSendParams{
           height="800"
           contain
           :src="
-            require('@/static/img/blog/end-to-end-encryption-to-sms-messages/send-sms-message.png')
+            '/img/blog/end-to-end-encryption-to-sms-messages/send-sms-message.png'
           "
         ></v-img>
         <h3 class="text-h4 mb-4 mt-16">Receiving an encrypted message</h3>
@@ -301,6 +301,7 @@ decryptedMessage := client.Cipher.Decrypt(encryptionkey, encryptedMessage)
 
 <script lang="ts">
 import { mdiLanguageGo, mdiTwitter, mdiLanguageJavascript } from '@mdi/js'
+import authorImage from '@/assets/img/arnold.png'
 export default {
   name: 'EndToEndEncryptionToSmsMessages',
   layout: 'website',
@@ -310,7 +311,7 @@ export default {
       mdiLanguageGo,
       mdiLanguageJavascript,
       selectedTab: 'javascript',
-      authorImage: require('@/assets/img/arnold.png'),
+      authorImage,
       authorName: 'Acho Arnold',
       postDate: 'January 21, 2024',
       readTime: '10 min read',

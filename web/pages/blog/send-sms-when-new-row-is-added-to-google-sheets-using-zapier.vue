@@ -51,7 +51,7 @@
             style="border-radius: 4px"
             alt="httpsms.com settings page"
             :src="
-              require('~/static/img/blog/send-sms-when-new-row-is-added-to-google-sheets-using-zapier/zapier-trigger.png')
+              '/img/blog/send-sms-when-new-row-is-added-to-google-sheets-using-zapier/zapier-trigger.png'
             "
           ></v-img>
         </vue-glow>
@@ -77,7 +77,7 @@
             style="border-radius: 4px"
             alt="httpsms.com settings page"
             :src="
-              require('@/static/img/blog/send-sms-when-new-row-is-added-to-google-sheets-using-zapier/google-sheets.png')
+              '/img/blog/send-sms-when-new-row-is-added-to-google-sheets-using-zapier/google-sheets.png'
             "
           ></v-img>
         </vue-glow>
@@ -99,7 +99,7 @@
             style="border-radius: 4px"
             alt="httpsms.com settings page"
             :src="
-              require('@/static/img/blog/send-sms-when-new-row-is-added-to-google-sheets-using-zapier/zapier-action-event.png')
+              '/img/blog/send-sms-when-new-row-is-added-to-google-sheets-using-zapier/zapier-action-event.png'
             "
           ></v-img>
         </vue-glow>
@@ -161,7 +161,7 @@
             style="border-radius: 4px"
             alt="httpsms.com settings page"
             :src="
-              require('@/static/img/blog/send-sms-when-new-row-is-added-to-google-sheets-using-zapier/zapier-action-action.png')
+              '/img/blog/send-sms-when-new-row-is-added-to-google-sheets-using-zapier/zapier-action-action.png'
             "
           ></v-img>
         </vue-glow>
@@ -192,6 +192,7 @@
 </template>
 
 <script lang="ts">
+import authorImage from '@/assets/img/arnold.png'
 import { mdiTwitter, mdiCommentTextMultipleOutline } from '@mdi/js'
 export default {
   name: 'SendSmsWhenNewRowIsAddedToGoogleSheetsUsingZapier',
@@ -200,7 +201,7 @@ export default {
     return {
       mdiTwitter,
       mdiCommentTextMultipleOutline,
-      authorImage: require('@/assets/img/arnold.png'),
+      authorImage,
       authorName: 'Acho Arnold',
       postDate: 'October 29, 2023',
       readTime: '5 min read',

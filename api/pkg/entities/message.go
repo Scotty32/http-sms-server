@@ -87,6 +87,7 @@ type Message struct {
 	RequestID *string       `json:"request_id" example:"153554b5-ae44-44a0-8f4f-7bbac5657ad4" validate:"optional"`
 	Owner     string        `json:"owner" example:"+18005550199"`
 	UserID    UserID        `json:"user_id" gorm:"index:idx_messages__user_id" example:"WB7DRDWrJZRGbYrv2CKGkqbzvqdC"`
+	AppID     *uuid.UUID    `json:"app_id,omitempty" gorm:"type:uuid;index:idx_messages__app_id" example:"32343a19-da5e-4b1b-a767-3298a73703cb" validate:"optional"`
 	Contact   string        `json:"contact" example:"+18005550100"`
 	Content   string        `json:"content" example:"This is a sample text message"`
 	Encrypted bool          `json:"encrypted" example:"false" gorm:"default:false"`

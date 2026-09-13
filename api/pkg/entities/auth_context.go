@@ -6,6 +6,7 @@ import "github.com/google/uuid"
 type AuthContext struct {
 	ID            UserID     `json:"id"`
 	PhoneAPIKeyID *uuid.UUID `json:"phone_api_key_id"`
+	AppID         *uuid.UUID `json:"app_id"`
 	PhoneNumbers  []string   `json:"phone_numbers"`
 	Email         string     `json:"email"`
 }

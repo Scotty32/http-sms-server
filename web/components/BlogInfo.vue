@@ -1,11 +1,11 @@
 <template>
   <div>
-    <nuxt-link to="/" class="text-decoration-none d-flex">
-      <v-avatar tile size="33" class="mt-1">
-        <v-img contain :src="require('@/assets/img/logo.svg')"></v-img>
+    <NuxtLink to="/" class="text-decoration-none d-flex">
+      <v-avatar rounded="0" size="33" class="mt-1">
+        <v-img contain :src="logoImg"></v-img>
       </v-avatar>
-      <h3 class="text-h4 text--primary ml-1">httpSMS</h3>
-    </nuxt-link>
+      <h3 class="text-h4 text-high-emphasis ml-1">httpSMS</h3>
+    </NuxtLink>
     <p>
       httpSMS is an
       <a
@@ -16,23 +16,17 @@
       application that converts your android phone into an SMS gateway so you
       can send and receive SMS messages using a simple HTTP API.
     </p>
-    <v-btn :href="$store.getters.getAppData.documentationUrl">
-      <v-icon left>{{ mdiBookOpenVariant }}</v-icon>
+    <v-btn :href="store.getAppData.documentationUrl">
+      <v-icon start :icon="mdiBookOpenVariant" />
       Documentation
     </v-btn>
   </div>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
 import { mdiBookOpenVariant } from '@mdi/js'
-import Vue from 'vue'
+import logoImg from '@/assets/img/logo.svg'
+import { useAppStore } from '~/stores/app'
 
-export default Vue.extend({
-  name: 'BlogInfo',
-  data() {
-    return {
-      mdiBookOpenVariant,
-    }
-  },
-})
+const store = useAppStore()
 </script>

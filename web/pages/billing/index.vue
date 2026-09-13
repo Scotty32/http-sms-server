@@ -1,13 +1,12 @@
 <template>
   <v-container
     fluid
-    class="px-0 pt-0"
-    :fill-height="$vuetify.breakpoint.lgAndUp"
+    class="px-0 pt-0 fill-height"
   >
-    <div class="w-full h-full">
-      <v-app-bar height="60" :dense="$vuetify.breakpoint.mdAndDown">
+    <div class="w-100 h-100">
+      <v-app-bar height="60" :density="display.mdAndDown.value ? 'compact' : 'default'">
         <v-btn icon to="/threads">
-          <v-icon>{{ mdiArrowLeft }}</v-icon>
+          <v-icon :icon="mdiArrowLeft" />
         </v-btn>
         <v-toolbar-title>
           <div class="py-16">Account Usage</div>
@@ -23,9 +22,9 @@
         <v-row>
           <v-col cols="12" md="9" offset-md="1" xl="8" offset-xl="2">
             <h5 class="text-h4 mb-3 mt-3">Current Plan</h5>
-            <v-row v-if="$store.getters.getUser">
+            <v-row v-if="store.getUser">
               <v-col md="6" xl="4">
-                <v-alert dense text prominent color="info">
+                <v-alert density="compact" variant="tonal" prominent color="info">
                   <v-row align="center">
                     <v-col cols="12">
                       <h1
@@ -33,7 +32,7 @@
                       >
                         <span v-if="isOnFreePlan">{{ plan.name }}</span>
                         <span v-else-if="subscriptionIsCancelled"
-                          ><span class="warning--text">{{ plan.name }}</span> →
+                          ><span class="text-warning">{{ plan.name }}</span> →
                           Free</span
                         >
                         <span v-else>{{ plan.name }}</span>
@@ -44,31 +43,31 @@
                           !isOnLifetimePlan &&
                           !subscriptionIsCancelled
                         "
-                        class="text--secondary"
+                        class="text-medium-emphasis"
                       >
                         Your next bill is for <b>${{ plan.price }}</b> on
                         <b>{{
                           new Date(
-                            $store.getters.getUser.subscription_renews_at,
+                            store.getUser.subscription_renews_at,
                           ).toLocaleDateString()
                         }}</b>
                       </p>
-                      <p v-if="isOnLifetimePlan" class="text--secondary">
+                      <p v-if="isOnLifetimePlan" class="text-medium-emphasis">
                         You are on the life time plan which costs
                         <b>${{ plan.price }}</b>
                       </p>
                       <p
                         v-else-if="subscriptionIsCancelled"
-                        class="text--secondary"
+                        class="text-medium-emphasis"
                       >
                         You will be downgraded to the <b>FREE</b> plan on
                         <b>{{
                           new Date(
-                            $store.getters.getUser.subscription_ends_at,
+                            store.getUser.subscription_ends_at,
                           ).toLocaleDateString()
                         }}</b>
                       </p>
-                      <p v-else class="text--secondary">
+                      <p v-else class="text-medium-emphasis">
                         {{ totalMessages }}/{{ plan.messagesPerMonth }} messages
                       </p>
                     </v-col>
@@ -101,14 +100,14 @@
                         v-model="dialog"
                         max-width="590"
                       >
-                        <template #activator="{ on, attrs }">
-                          <v-btn v-bind="attrs" color="error" text v-on="on">
+                        <template #activator="{ props: activatorProps }">
+                          <v-btn v-bind="activatorProps" color="error" variant="text">
                             Cancel Plan
                           </v-btn>
                         </template>
                         <v-card>
                           <v-card-text class="pt-4 mb-n6">
-                            <h2 class="text--primary text-h5 mb-2">
+                            <h2 class="text-high-emphasis text-h5 mb-2">
                               Are you sure you want to cancel your subscription?
                             </h2>
                             <p>
@@ -116,7 +115,7 @@
                               of the current billing period on
                               <b>{{
                                 new Date(
-                                  $store.getters.getUser.subscription_renews_at,
+                                  store.getUser.subscription_renews_at,
                                 ).toLocaleDateString()
                               }}</b>
                             </p>
@@ -128,7 +127,7 @@
                             <v-spacer></v-spacer>
                             <loading-button
                               v-if="!isOnFreePlan"
-                              :text="true"
+                              variant="text"
                               :loading="loading"
                               color="error"
                               @click="cancelPlan"
@@ -146,24 +145,25 @@
             <h2 v-if="isOnFreePlan" class="text-h4 mt-4 mb-2">Upgrade Plan</h2>
             <v-row v-if="isOnFreePlan">
               <v-col cols="12" md="6" xl="4">
-                <v-hover v-slot="{ hover }">
+                <v-hover v-slot="{ isHovering, props: hoverProps }">
                   <v-card
-                    :color="hover ? 'black' : 'default'"
+                    v-bind="hoverProps"
+                    :color="isHovering ? 'black' : 'default'"
                     :href="checkoutURL"
-                    outlined
+                    variant="outlined"
                   >
                     <v-card-text>
                       <v-row align="center">
-                        <v-col class="grow">
+                        <v-col class="flex-grow-1">
                           <h1
                             class="subtitle-1 font-weight-bold text-uppercase mt-3"
                           >
                             Pro - Monthly
                           </h1>
-                          <p class="text--secondary">5,000 messages monthly</p>
+                          <p class="text-medium-emphasis">5,000 messages monthly</p>
                         </v-col>
-                        <v-col class="shrink">
-                          <span class="text-h5 text--primary">$10</span>/month
+                        <v-col class="flex-shrink-1 flex-grow-0">
+                          <span class="text-h5 text-high-emphasis">$10</span>/month
                         </v-col>
                       </v-row>
                     </v-card-text>
@@ -171,27 +171,28 @@
                 </v-hover>
               </v-col>
               <v-col cols="12" md="6" xl="4">
-                <v-hover v-slot="{ hover }">
+                <v-hover v-slot="{ isHovering, props: hoverProps }">
                   <v-card
-                    :color="hover ? 'black' : 'default'"
+                    v-bind="hoverProps"
+                    :color="isHovering ? 'black' : 'default'"
                     :href="checkoutURL"
-                    outlined
+                    variant="outlined"
                   >
                     <v-card-text>
                       <v-row align="center">
-                        <v-col class="grow">
+                        <v-col class="flex-grow-1">
                           <h1
                             class="subtitle-1 font-weight-bold text-uppercase mt-3"
                           >
                             Pro - Yearly
-                            <v-chip small color="primary" class="mt-n1"
+                            <v-chip size="small" color="primary" class="mt-n1"
                               >2 months free</v-chip
                             >
                           </h1>
-                          <p class="text--secondary">5,000 messages monthly</p>
+                          <p class="text-medium-emphasis">5,000 messages monthly</p>
                         </v-col>
-                        <v-col class="shrink">
-                          <span class="text-h5 text--primary">$100</span>/year
+                        <v-col class="flex-shrink-1 flex-grow-0">
+                          <span class="text-h5 text-high-emphasis">$100</span>/year
                         </v-col>
                       </v-row>
                     </v-card-text>
@@ -199,26 +200,27 @@
                 </v-hover>
               </v-col>
               <v-col cols="12" md="6" xl="4">
-                <v-hover v-slot="{ hover }">
+                <v-hover v-slot="{ isHovering, props: hoverProps }">
                   <v-card
-                    :color="hover ? 'black' : 'default'"
+                    v-bind="hoverProps"
+                    :color="isHovering ? 'black' : 'default'"
                     :href="enterpriseCheckoutURL"
-                    outlined
+                    variant="outlined"
                   >
                     <v-card-text>
                       <v-row align="center">
-                        <v-col class="grow">
+                        <v-col class="flex-grow-1">
                           <h1
                             class="subtitle-1 font-weight-bold text-uppercase mt-3"
                           >
                             100k - Monthly
                           </h1>
-                          <p class="text--secondary">
+                          <p class="text-medium-emphasis">
                             100,000 messages monthly
                           </p>
                         </v-col>
-                        <v-col class="shrink">
-                          <span class="text-h5 text--primary">$175</span>/month
+                        <v-col class="flex-shrink-1 flex-grow-0">
+                          <span class="text-h5 text-high-emphasis">$175</span>/month
                         </v-col>
                       </v-row>
                     </v-card-text>
@@ -227,70 +229,69 @@
               </v-col>
             </v-row>
             <h5 class="text-h4 mb-3 mt-8">Overview</h5>
-            <p class="text--secondary">
+            <p class="text-medium-emphasis">
               This is the summary of the sent messages and received messages in
               <code
-                v-if="$store.getters.getBillingUsage"
+                v-if="store.getBillingUsage"
                 class="font-weight-bold"
                 >{{
-                  $store.getters.getBillingUsage.start_timestamp | billingPeriod
+                  formatBillingPeriod(store.getBillingUsage.start_timestamp)
                 }}</code
               >.
             </p>
-            <v-row v-if="$store.getters.getBillingUsage">
+            <v-row v-if="store.getBillingUsage">
               <v-col cols="12" md="4">
                 <v-alert
                   dark
-                  dense
+                  density="compact"
                   :icon="mdiCallMade"
                   prominent
                   type="info"
-                  text
+                  variant="tonal"
                 >
                   <h2 class="text-h4 font-weight-bold mt-4">
-                    {{ $store.getters.getBillingUsage.sent_messages | decimal }}
+                    {{ formatDecimal(store.getBillingUsage.sent_messages) }}
                   </h2>
-                  <p class="text--secondary mt-n1">Messages Sent</p>
+                  <p class="text-medium-emphasis mt-n1">Messages Sent</p>
                 </v-alert>
               </v-col>
               <v-col cols="12" md="4">
                 <v-alert
                   dark
-                  dense
+                  density="compact"
                   :icon="mdiCallReceived"
                   prominent
                   type="warning"
-                  text
+                  variant="tonal"
                 >
                   <div class="d-flex">
                     <h2 class="text-h4 font-weight-bold mt-4">
                       {{
-                        $store.getters.getBillingUsage.received_messages
-                          | decimal
+                        formatDecimal(store.getBillingUsage.received_messages)
                       }}
                     </h2>
                   </div>
-                  <p class="text--secondary mt-n1">Messages Received</p>
+                  <p class="text-medium-emphasis mt-n1">Messages Received</p>
                 </v-alert>
               </v-col>
               <v-col cols="12" md="4">
                 <v-alert
-                  dense
+                  density="compact"
                   :icon="mdiCreditCard"
                   prominent
                   type="success"
-                  text
+                  variant="tonal"
                 >
                   <h2 class="text-h4 font-weight-bold mt-4">
-                    {{ $store.getters.getBillingUsage.total_cost | money }}
+                    {{ formatMoney(store.getBillingUsage.total_cost) }}
                   </h2>
-                  <p class="text--secondary mt-n1">Total Cost</p>
+                  <p class="text-medium-emphasis mt-n1">Total Cost</p>
                 </v-alert>
               </v-col>
             </v-row>
-            <template v-if="$store.getters.getUser?.subscription_id != null">
+            <template v-if="store.getUser?.subscription_id != null">
               <h5 class="text-h4 mb-3 mt-8">Subscription Payments</h5>
-              <p class="text--secondary">
+              <p class="text-medium-emphasis">
                 This is a list of your last 10 subscription payments made using
                 our payment provider
                 <a
@@ -306,113 +307,108 @@
                 color="primary"
                 indeterminate
               ></v-progress-circular>
-              <v-simple-table v-if="payments">
-                <template #default>
-                  <thead>
-                    <tr class="text-uppercase">
-                      <th v-if="$vuetify.breakpoint.lgAndUp" class="text-left">
-                        ID
-                      </th>
-                      <th class="text-left">Timestamp</th>
-                      <th class="text-left">Status</th>
-                      <th v-if="$vuetify.breakpoint.lgAndUp" class="text-left">
-                        Tax
-                      </th>
-                      <th class="text-left">Total</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="payment in payments.data" :key="payment.id">
-                      <td v-if="$vuetify.breakpoint.lgAndUp">
-                        {{ payment.id }}
-                      </td>
-                      <td>
-                        {{ payment.attributes.created_at | timestamp }}
-                      </td>
-                      <td>
-                        <v-chip
-                          v-if="payment.attributes.status === 'paid'"
-                          color="success"
-                        >
-                          <v-avatar size="4" left class="green darken-4">
-                            <v-icon small>{{ mdiCheck }}</v-icon>
-                          </v-avatar>
-                          {{ payment.attributes.status_formatted }}
-                        </v-chip>
-                        <v-chip v-else color="error">
-                          <v-avatar size="4" left class="red darken-4">
-                            <v-icon small>{{ mdiAlert }}</v-icon>
-                          </v-avatar>
-                          {{ payment.attributes.status_formatted }}
-                        </v-chip>
-                      </td>
-                      <td v-if="$vuetify.breakpoint.lgAndUp">
-                        {{ payment.attributes.tax_formatted }}
-                      </td>
-                      <td class="font-weight-bold">
-                        {{ payment.attributes.total_formatted }}
-                      </td>
-                      <td class="text-right">
-                        <v-btn
-                          color="primary"
-                          small
-                          @click="showInvoiceDialog(payment)"
-                        >
-                          <v-icon left>{{ mdiInvoice }}</v-icon>
-                          Invoice
-                        </v-btn>
-                      </td>
-                    </tr>
-                  </tbody>
-                </template>
-              </v-simple-table>
-            </template>
-            <h5 class="text-h4 mb-3 mt-8">Usage History</h5>
-            <p class="text--secondary">
-              Summary of all the sent and received messages in the past 12
-              months
-            </p>
-            <v-simple-table>
-              <template #default>
+              <v-table v-if="payments">
                 <thead>
                   <tr class="text-uppercase">
-                    <th class="text-left">Period</th>
-                    <th class="text-left">
-                      Sent
-                      <span v-if="$vuetify.breakpoint.lgAndUp">Messages</span>
+                    <th v-if="display.lgAndUp.value" class="text-left">
+                      ID
                     </th>
-                    <th class="text-left">
-                      Received
-                      <span v-if="$vuetify.breakpoint.lgAndUp">Messages</span>
+                    <th class="text-left">Timestamp</th>
+                    <th class="text-left">Status</th>
+                    <th v-if="display.lgAndUp.value" class="text-left">
+                      Tax
                     </th>
-                    <th class="text-right">
-                      <span v-if="$vuetify.breakpoint.lgAndUp">Total</span> Cost
-                    </th>
+                    <th class="text-left">Total</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr
-                    v-for="billingUsage in $store.getters
-                      .getBillingUsageHistory"
-                    :key="billingUsage.id"
-                  >
-                    <td>
-                      {{ billingUsage.start_timestamp | billingPeriod }}
+                  <tr v-for="payment in payments.data" :key="payment.id">
+                    <td v-if="display.lgAndUp.value">
+                      {{ payment.id }}
                     </td>
                     <td>
-                      {{ billingUsage.sent_messages | decimal }}
+                      {{ formatTimestamp(payment.attributes.created_at) }}
                     </td>
                     <td>
-                      {{ billingUsage.received_messages }}
+                      <v-chip
+                        v-if="payment.attributes.status === 'paid'"
+                        color="success"
+                      >
+                        <v-avatar size="4" start class="bg-green-darken-4">
+                          <v-icon size="small" :icon="mdiCheck" />
+                        </v-avatar>
+                        {{ payment.attributes.status_formatted }}
+                      </v-chip>
+                      <v-chip v-else color="error">
+                        <v-avatar size="4" start class="bg-red-darken-4">
+                          <v-icon size="small" :icon="mdiAlert" />
+                        </v-avatar>
+                        {{ payment.attributes.status_formatted }}
+                      </v-chip>
                     </td>
-                    <td class="text-right font-weight-bold">
-                      {{ billingUsage.total_cost | money }}
+                    <td v-if="display.lgAndUp.value">
+                      {{ payment.attributes.tax_formatted }}
+                    </td>
+                    <td class="font-weight-bold">
+                      {{ payment.attributes.total_formatted }}
+                    </td>
+                    <td class="text-right">
+                      <v-btn
+                        color="primary"
+                        size="small"
+                        @click="showInvoiceDialog(payment)"
+                      >
+                        <v-icon start :icon="mdiInvoice" />
+                        Invoice
+                      </v-btn>
                     </td>
                   </tr>
                 </tbody>
-              </template>
-            </v-simple-table>
+              </v-table>
+            </template>
+            <h5 class="text-h4 mb-3 mt-8">Usage History</h5>
+            <p class="text-medium-emphasis">
+              Summary of all the sent and received messages in the past 12
+              months
+            </p>
+            <v-table>
+              <thead>
+                <tr class="text-uppercase">
+                  <th class="text-left">Period</th>
+                  <th class="text-left">
+                    Sent
+                    <span v-if="display.lgAndUp.value">Messages</span>
+                  </th>
+                  <th class="text-left">
+                    Received
+                    <span v-if="display.lgAndUp.value">Messages</span>
+                  </th>
+                  <th class="text-right">
+                    <span v-if="display.lgAndUp.value">Total</span> Cost
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="billingUsage in store.getBillingUsageHistory"
+                  :key="billingUsage.id"
+                >
+                  <td>
+                    {{ formatBillingPeriod(billingUsage.start_timestamp) }}
+                  </td>
+                  <td>
+                    {{ formatDecimal(billingUsage.sent_messages) }}
+                  </td>
+                  <td>
+                    {{ billingUsage.received_messages }}
+                  </td>
+                  <td class="text-right font-weight-bold">
+                    {{ formatMoney(billingUsage.total_cost) }}
+                  </td>
+                </tr>
+              </tbody>
+            </v-table>
           </v-col>
         </v-row>
       </v-container>
@@ -428,7 +424,7 @@
         <v-card-subtitle class="mt-n1">
           Create an invoice for your
           <b>{{ selectedPayment?.attributes.total_formatted }}</b> payment on
-          {{ selectedPayment?.attributes.created_at | timestamp }}
+          {{ selectedPayment ? formatTimestamp(selectedPayment.attributes.created_at) : '' }}
         </v-card-subtitle>
         <v-card-text>
           <v-container>
@@ -436,27 +432,27 @@
               <v-col cols="12">
                 <v-text-field
                   v-model="invoiceFormName"
-                  dense
+                  density="compact"
                   :disabled="loading"
                   :error="errorMessages.has('name')"
                   :error-messages="errorMessages.get('name')"
                   label="Name"
                   placeholder="e.g Acme Corporation"
                   persistent-placeholder
-                  outlined
+                  variant="outlined"
                 ></v-text-field>
               </v-col>
               <v-col cols="12">
                 <v-text-field
                   v-model="invoiceFormAddress"
-                  dense
+                  density="compact"
                   :disabled="loading"
                   :error="errorMessages.has('address')"
                   :error-messages="errorMessages.get('address')"
                   label="Address"
                   placeholder="e.g 221B Baker Street"
                   persistent-placeholder
-                  outlined
+                  variant="outlined"
                 ></v-text-field>
               </v-col>
             </v-row>
@@ -464,39 +460,39 @@
               <v-col cols="6">
                 <v-text-field
                   v-model="invoiceFormCity"
-                  dense
+                  density="compact"
                   :disabled="loading"
                   :error="errorMessages.has('city')"
                   :error-messages="errorMessages.get('city')"
                   label="City"
                   placeholder="e.g Los Angeles"
                   persistent-placeholder
-                  outlined
+                  variant="outlined"
                 ></v-text-field>
               </v-col>
               <v-col cols="6">
                 <v-text-field
                   v-if="invoiceStateOptions.length === 0"
                   v-model="invoiceFormState"
-                  dense
+                  density="compact"
                   :disabled="loading"
                   :error="errorMessages.has('state')"
                   :error-messages="errorMessages.get('state')"
                   label="State"
                   placeholder="e.g CA"
                   persistent-placeholder
-                  outlined
+                  variant="outlined"
                 ></v-text-field>
                 <v-autocomplete
                   v-else
                   v-model="invoiceFormState"
-                  dense
+                  density="compact"
                   :disabled="loading"
                   :error="errorMessages.has('state')"
                   :error-messages="errorMessages.get('state')"
                   :items="invoiceStateOptions"
                   label="State"
-                  outlined
+                  variant="outlined"
                   placeholder="e.g CA"
                   persistent-placeholder
                 ></v-autocomplete>
@@ -506,27 +502,27 @@
               <v-col cols="6">
                 <v-text-field
                   v-model="invoiceFormZipCode"
-                  dense
+                  density="compact"
                   :disabled="loading"
                   :error="errorMessages.has('zip_code')"
                   :error-messages="errorMessages.get('zip_code')"
                   label="Zip Code"
                   placeholder="e.g 46001"
                   persistent-placeholder
-                  outlined
+                  variant="outlined"
                 ></v-text-field>
               </v-col>
               <v-col cols="6">
                 <v-autocomplete
                   v-model="invoiceFormCountry"
-                  dense
+                  density="compact"
                   :disabled="loading"
                   :error="errorMessages.has('country')"
                   :error-messages="errorMessages.get('country')"
                   :items="countries"
                   label="Country"
                   placeholder="e.g United States"
-                  outlined
+                  variant="outlined"
                   persistent-placeholder
                 ></v-autocomplete>
               </v-col>
@@ -535,7 +531,7 @@
               <v-col cols="12">
                 <v-textarea
                   v-model="invoiceFormNotes"
-                  dense
+                  density="compact"
                   :disabled="loading"
                   :error="errorMessages.has('notes')"
                   :error-messages="errorMessages.get('notes')"
@@ -543,7 +539,7 @@
                   label="Notes (optional)"
                   placeholder="e.g Thanks for doing business with us!"
                   persistent-placeholder
-                  outlined
+                  variant="outlined"
                 ></v-textarea>
               </v-col>
             </v-row>
@@ -551,11 +547,11 @@
         </v-card-text>
         <v-card-actions class="mt-n8 pb-4">
           <v-btn :loading="loading" color="primary" @click="generateInvoice">
-            <v-icon left>{{ mdiDownloadOutline }}</v-icon>
+            <v-icon start :icon="mdiDownloadOutline" />
             Download Invoice
           </v-btn>
           <v-spacer></v-spacer>
-          <v-btn color="error" text @click="subscriptionInvoiceDialog = false">
+          <v-btn color="error" variant="text" @click="subscriptionInvoiceDialog = false">
             Close
           </v-btn>
         </v-card-actions>
@@ -564,32 +560,59 @@
   </v-container>
 </template>
 
-<script lang="ts">
-import Vue from 'vue'
+<script setup lang="ts">
 import {
   mdiArrowLeft,
-  mdiAccountCircle,
-  mdiShieldCheck,
-  mdiDelete,
   mdiDownloadOutline,
-  mdiCog,
-  mdiContentSave,
   mdiCheck,
   mdiAlert,
   mdiInvoice,
-  mdiEye,
-  mdiEyeOff,
   mdiCallReceived,
   mdiCallMade,
   mdiCreditCard,
-  mdiSquareEditOutline,
 } from '@mdi/js'
-import {
+import { useDisplay } from 'vuetify'
+import { useAppStore } from '~/stores/app'
+import type {
   RequestsUserPaymentInvoice,
   ResponsesUserSubscriptionPaymentsResponse,
 } from '~/models/api'
-import { ErrorMessages } from '~/plugins/errors'
+import { ErrorMessages } from '~/utils/errors'
+import {
+  formatTimestamp,
+  formatMoney,
+  formatDecimal,
+  formatBillingPeriod,
+} from '~/plugins/filters'
 
+definePageMeta({ middleware: ['auth'] })
+
+useHead({
+  title: 'Usage & Billing - httpSMS',
+})
+
+const store = useAppStore()
+const router = useRouter()
+const config = useRuntimeConfig()
+const display = useDisplay()
+
+// --- State ---
+const loading = ref(true)
+const loadingSubscriptionPayments = ref(false)
+const dialog = ref(false)
+const payments = ref<ResponsesUserSubscriptionPaymentsResponse | null>(null)
+const selectedPayment = ref<SubscriptionPayment | null>(null)
+const errorMessages = ref(new ErrorMessages())
+const invoiceFormName = ref('')
+const invoiceFormAddress = ref('')
+const invoiceFormCity = ref('')
+const invoiceFormState = ref('')
+const invoiceFormZipCode = ref('')
+const invoiceFormCountry = ref('')
+const invoiceFormNotes = ref('')
+const subscriptionInvoiceDialog = ref(false)
+
+// --- Types ---
 type PaymentPlan = {
   name: string
   id: string
@@ -597,7 +620,7 @@ type PaymentPlan = {
   messagesPerMonth: number
 }
 
-type subscriptionPayment = {
+type SubscriptionPayment = {
   attributes: {
     created_at: string
     total_formatted: string
@@ -605,570 +628,475 @@ type subscriptionPayment = {
   id: string
 }
 
-export default Vue.extend({
-  name: 'BillingIndex',
-  middleware: ['auth'],
-  data() {
-    return {
-      mdiEye,
-      mdiEyeOff,
-      mdiArrowLeft,
-      mdiDownloadOutline,
-      mdiAccountCircle,
-      mdiCheck,
-      mdiAlert,
-      mdiInvoice,
-      mdiShieldCheck,
-      mdiDelete,
-      mdiCog,
-      mdiContentSave,
-      mdiCallReceived,
-      mdiCallMade,
-      mdiCreditCard,
-      mdiSquareEditOutline,
-      loading: true,
-      loadingSubscriptionPayments: false,
-      dialog: false,
-      payments: null as ResponsesUserSubscriptionPaymentsResponse | null,
-      selectedPayment: null as subscriptionPayment | null,
-      errorMessages: new ErrorMessages(),
-      invoiceFormName: '',
-      invoiceFormAddress: '',
-      invoiceFormCity: '',
-      invoiceFormState: '',
-      invoiceFormZipCode: '',
-      invoiceFormCountry: '',
-      invoiceFormNotes: '',
-      subscriptionInvoiceDialog: false,
-      countries: [
-        { text: 'Afghanistan', value: 'AF' },
-        { text: 'Åland Islands', value: 'AX' },
-        { text: 'Albania', value: 'AL' },
-        { text: 'Algeria', value: 'DZ' },
-        { text: 'American Samoa', value: 'AS' },
-        { text: 'Andorra', value: 'AD' },
-        { text: 'Angola', value: 'AO' },
-        { text: 'Anguilla', value: 'AI' },
-        { text: 'Antarctica', value: 'AQ' },
-        { text: 'Antigua and Barbuda', value: 'AG' },
-        { text: 'Argentina', value: 'AR' },
-        { text: 'Armenia', value: 'AM' },
-        { text: 'Aruba', value: 'AW' },
-        { text: 'Australia', value: 'AU' },
-        { text: 'Austria', value: 'AT' },
-        { text: 'Azerbaijan', value: 'AZ' },
-        { text: 'Bahamas', value: 'BS' },
-        { text: 'Bahrain', value: 'BH' },
-        { text: 'Bangladesh', value: 'BD' },
-        { text: 'Barbados', value: 'BB' },
-        { text: 'Belarus', value: 'BY' },
-        { text: 'Belgium', value: 'BE' },
-        { text: 'Belize', value: 'BZ' },
-        { text: 'Benin', value: 'BJ' },
-        { text: 'Bermuda', value: 'BM' },
-        { text: 'Bhutan', value: 'BT' },
-        { text: 'Bolivia', value: 'BO' },
-        { text: 'Bonaire', value: 'BQ' },
-        { text: 'Bosnia and Herzegovina', value: 'BA' },
-        { text: 'Botswana', value: 'BW' },
-        { text: 'Bouvet Island', value: 'BV' },
-        { text: 'Brazil', value: 'BR' },
-        { text: 'British Indian Ocean', value: 'IO' },
-        { text: 'Brunei Darussalam', value: 'BN' },
-        { text: 'Bulgaria', value: 'BG' },
-        { text: 'Burkina Faso', value: 'BF' },
-        { text: 'Burundi', value: 'BI' },
-        { text: 'Cabo Verde', value: 'CV' },
-        { text: 'Cambodia', value: 'KH' },
-        { text: 'Cameroon', value: 'CM' },
-        { text: 'Canada', value: 'CA' },
-        { text: 'Cayman Islands', value: 'KY' },
-        { text: 'Central African Republic', value: 'CF' },
-        { text: 'Chad', value: 'TD' },
-        { text: 'Chile', value: 'CL' },
-        { text: 'China', value: 'CN' },
-        { text: 'Christmas Island', value: 'CX' },
-        { text: 'Cocos (Keeling) Islands', value: 'CC' },
-        { text: 'Colombia', value: 'CO' },
-        { text: 'Comoros', value: 'KM' },
-        { text: 'Congo', value: 'CG' },
-        { text: 'Congo', value: 'CD' },
-        { text: 'Cook Islands', value: 'CK' },
-        { text: 'Costa Rica', value: 'CR' },
-        { text: "Côte d'Ivoire", value: 'CI' },
-        { text: 'Cuba', value: 'CU' },
-        { text: 'Curaçao', value: 'CW' },
-        { text: 'Cyprus', value: 'CY' },
-        { text: 'Czechia', value: 'CZ' },
-        { text: 'Denmark', value: 'DK' },
-        { text: 'Djibouti', value: 'DJ' },
-        { text: 'Dominica', value: 'DM' },
-        { text: 'Dominican Republic', value: 'DO' },
-        { text: 'Ecuador', value: 'EC' },
-        { text: 'Egypt', value: 'EG' },
-        { text: 'El Salvador', value: 'SV' },
-        { text: 'Equatorial Guinea', value: 'GQ' },
-        { text: 'Eritrea', value: 'ER' },
-        { text: 'Estonia', value: 'EE' },
-        { text: 'Eswatini', value: 'SZ' },
-        { text: 'Ethiopia', value: 'ET' },
-        { text: 'Falkland Islands', value: 'FK' },
-        { text: 'Faroe Islands', value: 'FO' },
-        { text: 'Fiji', value: 'FJ' },
-        { text: 'Finland', value: 'FI' },
-        { text: 'France', value: 'FR' },
-        { text: 'French Guiana', value: 'GF' },
-        { text: 'French Polynesia', value: 'PF' },
-        { text: 'French Southern Territories', value: 'TF' },
-        { text: 'Gabon', value: 'GA' },
-        { text: 'Gambia', value: 'GM' },
-        { text: 'Georgia', value: 'GE' },
-        { text: 'Germany', value: 'DE' },
-        { text: 'Ghana', value: 'GH' },
-        { text: 'Gibraltar', value: 'GI' },
-        { text: 'Greece', value: 'GR' },
-        { text: 'Greenland', value: 'GL' },
-        { text: 'Grenada', value: 'GD' },
-        { text: 'Guadeloupe', value: 'GP' },
-        { text: 'Guam', value: 'GU' },
-        { text: 'Guatemala', value: 'GT' },
-        { text: 'Guernsey', value: 'GG' },
-        { text: 'Guinea', value: 'GN' },
-        { text: 'Guinea-Bissau', value: 'GW' },
-        { text: 'Guyana', value: 'GY' },
-        { text: 'Haiti', value: 'HT' },
-        { text: 'Heard Island and McDonald Islands', value: 'HM' },
-        { text: 'Holy See', value: 'VA' },
-        { text: 'Honduras', value: 'HN' },
-        { text: 'Hong Kong', value: 'HK' },
-        { text: 'Hungary', value: 'HU' },
-        { text: 'Iceland', value: 'IS' },
-        { text: 'India', value: 'IN' },
-        { text: 'Indonesia', value: 'ID' },
-        { text: 'Iran', value: 'IR' },
-        { text: 'Iraq', value: 'IQ' },
-        { text: 'Ireland', value: 'IE' },
-        { text: 'Isle of Man', value: 'IM' },
-        { text: 'Israel', value: 'IL' },
-        { text: 'Italy', value: 'IT' },
-        { text: 'Jamaica', value: 'JM' },
-        { text: 'Japan', value: 'JP' },
-        { text: 'Jersey', value: 'JE' },
-        { text: 'Jordan', value: 'JO' },
-        { text: 'Kazakhstan', value: 'KZ' },
-        { text: 'Kenya', value: 'KE' },
-        { text: 'Kiribati', value: 'KI' },
-        { text: 'North Korea', value: 'KP' },
-        { text: 'South Korea', value: 'KR' },
-        { text: 'Kuwait', value: 'KW' },
-        { text: 'Kyrgyzstan', value: 'KG' },
-        { text: 'Lao People’s Democratic Republic', value: 'LA' },
-        { text: 'Latvia', value: 'LV' },
-        { text: 'Lebanon', value: 'LB' },
-        { text: 'Lesotho', value: 'LS' },
-        { text: 'Liberia', value: 'LR' },
-        { text: 'Libya', value: 'LY' },
-        { text: 'Liechtenstein', value: 'LI' },
-        { text: 'Lithuania', value: 'LT' },
-        { text: 'Luxembourg', value: 'LU' },
-        { text: 'Macao', value: 'MO' },
-        { text: 'Madagascar', value: 'MG' },
-        { text: 'Malawi', value: 'MW' },
-        { text: 'Malaysia', value: 'MY' },
-        { text: 'Maldives', value: 'MV' },
-        { text: 'Mali', value: 'ML' },
-        { text: 'Malta', value: 'MT' },
-        { text: 'Marshall Islands', value: 'MH' },
-        { text: 'Martinique', value: 'MQ' },
-        { text: 'Mauritania', value: 'MR' },
-        { text: 'Mauritius', value: 'MU' },
-        { text: 'Mayotte', value: 'YT' },
-        { text: 'Mexico', value: 'MX' },
-        { text: 'Micronesia', value: 'FM' },
-        { text: 'Moldova', value: 'MD' },
-        { text: 'Monaco', value: 'MC' },
-        { text: 'Mongolia', value: 'MN' },
-        { text: 'Montenegro', value: 'ME' },
-        { text: 'Montserrat', value: 'MS' },
-        { text: 'Morocco', value: 'MA' },
-        { text: 'Mozambique', value: 'MZ' },
-        { text: 'Myanmar', value: 'MM' },
-        { text: 'Namibia', value: 'NA' },
-        { text: 'Nauru', value: 'NR' },
-        { text: 'Nepal', value: 'NP' },
-        { text: 'Netherlands', value: 'NL' },
-        { text: 'New Caledonia', value: 'NC' },
-        { text: 'New Zealand', value: 'NZ' },
-        { text: 'Nicaragua', value: 'NI' },
-        { text: 'Niger', value: 'NE' },
-        { text: 'Nigeria', value: 'NG' },
-        { text: 'Niue', value: 'NU' },
-        { text: 'Norfolk Island', value: 'NF' },
-        { text: 'North Macedonia', value: 'MK' },
-        { text: 'Northern Mariana Islands', value: 'MP' },
-        { text: 'Norway', value: 'NO' },
-        { text: 'Oman', value: 'OM' },
-        { text: 'Pakistan', value: 'PK' },
-        { text: 'Palau', value: 'PW' },
-        { text: 'Panama', value: 'PA' },
-        { text: 'Papua New Guinea', value: 'PG' },
-        { text: 'Paraguay', value: 'PY' },
-        { text: 'Peru', value: 'PE' },
-        { text: 'Philippines', value: 'PH' },
-        { text: 'Pitcairn', value: 'PN' },
-        { text: 'Poland', value: 'PL' },
-        { text: 'Portugal', value: 'PT' },
-        { text: 'Puerto Rico', value: 'PR' },
-        { text: 'Qatar', value: 'QA' },
-        { text: 'Réunion', value: 'RE' },
-        { text: 'Romania', value: 'RO' },
-        { text: 'Russian Federation', value: 'RU' },
-        { text: 'Rwanda', value: 'RW' },
-        { text: 'Saint Barthélemy', value: 'BL' },
-        { text: 'Saint Helena, Ascension and Tristan da Cunha', value: 'SH' },
-        { text: 'Saint Kitts and Nevis', value: 'KN' },
-        { text: 'Saint Lucia', value: 'LC' },
-        { text: 'Saint Martin (French part)', value: 'MF' },
-        { text: 'Saint Pierre and Miquelon', value: 'PM' },
-        { text: 'Saint Vincent and the Grenadines', value: 'VC' },
-        { text: 'Samoa', value: 'WS' },
-        { text: 'San Marino', value: 'SM' },
-        { text: 'Sao Tome and Principe', value: 'ST' },
-        { text: 'Saudi Arabia', value: 'SA' },
-        { text: 'Senegal', value: 'SN' },
-        { text: 'Serbia', value: 'RS' },
-        { text: 'Seychelles', value: 'SC' },
-        { text: 'Sierra Leone', value: 'SL' },
-        { text: 'Singapore', value: 'SG' },
-        { text: 'Slovakia', value: 'SK' },
-        { text: 'Slovenia', value: 'SI' },
-        { text: 'Solomon Islands', value: 'SB' },
-        { text: 'Somalia', value: 'SO' },
-        { text: 'South Africa', value: 'ZA' },
-        { text: 'South Georgia and the South Sandwich Islands', value: 'GS' },
-        { text: 'South Sudan', value: 'SS' },
-        { text: 'Spain', value: 'ES' },
-        { text: 'Sri Lanka', value: 'LK' },
-        { text: 'Sudan', value: 'SD' },
-        { text: 'Suriname', value: 'SR' },
-        { text: 'Svalbard and Jan Mayen', value: 'SJ' },
-        { text: 'Sweden', value: 'SE' },
-        { text: 'Switzerland', value: 'CH' },
-        { text: 'Syrian Arab Republic', value: 'SY' },
-        { text: 'Taiwan, Province of China', value: 'TW' },
-        { text: 'Tajikistan', value: 'TJ' },
-        { text: 'Tanzania, United Republic of', value: 'TZ' },
-        { text: 'Thailand', value: 'TH' },
-        { text: 'Timor-Leste', value: 'TL' },
-        { text: 'Togo', value: 'TG' },
-        { text: 'Tokelau', value: 'TK' },
-        { text: 'Tonga', value: 'TO' },
-        { text: 'Trinidad and Tobago', value: 'TT' },
-        { text: 'Tunisia', value: 'TN' },
-        { text: 'Turkey', value: 'TR' },
-        { text: 'Turkmenistan', value: 'TM' },
-        { text: 'Turks and Caicos Islands', value: 'TC' },
-        { text: 'Tuvalu', value: 'TV' },
-        { text: 'Uganda', value: 'UG' },
-        { text: 'Ukraine', value: 'UA' },
-        { text: 'United Arab Emirates', value: 'AE' },
-        { text: 'United Kingdom', value: 'GB' },
-        { text: 'United States', value: 'US' },
-        { text: 'United States Minor Outlying Islands', value: 'UM' },
-        { text: 'Uruguay', value: 'UY' },
-        { text: 'Uzbekistan', value: 'UZ' },
-        { text: 'Vanuatu', value: 'VU' },
-        { text: 'Venezuela', value: 'VE' },
-        { text: 'Viet Nam', value: 'VN' },
-        { text: 'Virgin Islands (British)', value: 'VG' },
-        { text: 'Virgin Islands (U.S.)', value: 'VI' },
-        { text: 'Wallis and Futuna', value: 'WF' },
-        { text: 'Western Sahara', value: 'EH' },
-        { text: 'Yemen', value: 'YE' },
-        { text: 'Zambia', value: 'ZM' },
-        { text: 'Zimbabwe', value: 'ZW' },
-      ],
-      plans: [
-        {
-          name: 'Free',
-          id: 'free',
-          messagesPerMonth: 200,
-          price: 0,
-        },
-        {
-          name: 'PRO - Monthly',
-          id: 'pro-monthly',
-          messagesPerMonth: 5000,
-          price: 10,
-        },
-        {
-          name: 'PRO - Yearly',
-          id: 'pro-yearly',
-          messagesPerMonth: 5000,
-          price: 100,
-        },
-        {
-          name: 'Ultra - Monthly',
-          id: 'ultra-monthly',
-          messagesPerMonth: 10000,
-          price: 20,
-        },
-        {
-          name: 'Ultra - Yearly',
-          id: 'ultra-yearly',
-          messagesPerMonth: 10000,
-          price: 200,
-        },
-        {
-          name: '20k - Monthly',
-          id: '20k-monthly',
-          messagesPerMonth: 20000,
-          price: 35,
-        },
-        {
-          name: '20k - Yearly',
-          id: '20k-yearly',
-          messagesPerMonth: 20000,
-          price: 350,
-        },
-        {
-          name: '50k - Monthly',
-          id: '50k-monthly',
-          messagesPerMonth: 50000,
-          price: 89,
-        },
-        {
-          name: '100k - Monthly',
-          id: '100k-monthly',
-          messagesPerMonth: 100000,
-          price: 175,
-        },
-        {
-          name: '200k - Monthly',
-          id: '200k-monthly',
-          messagesPerMonth: 200000,
-          price: 350,
-        },
-        {
-          name: 'PRO - Lifetime',
-          id: 'pro-lifetime',
-          messagesPerMonth: 10000,
-          price: 1000,
-        },
-      ],
-    }
-  },
-  head() {
-    return {
-      title: 'Usage & Billing - httpSMS',
-    }
-  },
-  computed: {
-    invoiceStateOptions() {
-      if (this.invoiceFormCountry === 'US') {
-        return [
-          { text: 'Alabama', value: 'AL' },
-          { text: 'Alaska', value: 'AK' },
-          { text: 'Arizona', value: 'AZ' },
-          { text: 'Arkansas', value: 'AR' },
-          { text: 'California', value: 'CA' },
-          { text: 'Colorado', value: 'CO' },
-          { text: 'Connecticut', value: 'CT' },
-          { text: 'Delaware', value: 'DE' },
-          { text: 'Florida', value: 'FL' },
-          { text: 'Georgia', value: 'GA' },
-          { text: 'Hawaii', value: 'HI' },
-          { text: 'Idaho', value: 'ID' },
-          { text: 'Illinois', value: 'IL' },
-          { text: 'Indiana', value: 'IN' },
-          { text: 'Iowa', value: 'IA' },
-          { text: 'Kansas', value: 'KS' },
-          { text: 'Kentucky', value: 'KY' },
-          { text: 'Louisiana', value: 'LA' },
-          { text: 'Maine', value: 'ME' },
-          { text: 'Maryland', value: 'MD' },
-          { text: 'Massachusetts', value: 'MA' },
-          { text: 'Michigan', value: 'MI' },
-          { text: 'Minnesota', value: 'MN' },
-          { text: 'Mississippi', value: 'MS' },
-          { text: 'Missouri', value: 'MO' },
-          { text: 'Montana', value: 'MT' },
-          { text: 'Nebraska', value: 'NE' },
-          { text: 'Nevada', value: 'NV' },
-          { text: 'New Hampshire', value: 'NH' },
-          { text: 'New Jersey', value: 'NJ' },
-          { text: 'New Mexico', value: 'NM' },
-          { text: 'New York', value: 'NY' },
-          { text: 'North Carolina', value: 'NC' },
-          { text: 'North Dakota', value: 'ND' },
-          { text: 'Ohio', value: 'OH' },
-          { text: 'Oklahoma', value: 'OK' },
-          { text: 'Oregon', value: 'OR' },
-          { text: 'Pennsylvania', value: 'PA' },
-          { text: 'Rhode Island', value: 'RI' },
-          { text: 'South Carolina', value: 'SC' },
-          { text: 'South Dakota', value: 'SD' },
-          { text: 'Tennessee', value: 'TN' },
-          { text: 'Texas', value: 'TX' },
-          { text: 'Utah', value: 'UT' },
-          { text: 'Vermont', value: 'VT' },
-          { text: 'Virginia', value: 'VA' },
-          { text: 'Washington', value: 'WA' },
-          { text: 'West Virginia', value: 'WV' },
-          { text: 'Wisconsin', value: 'WI' },
-          { text: 'Wyoming', value: 'WY' },
-          { text: 'District of Columbia', value: 'DC' },
-        ]
-      }
-      if (this.invoiceFormCountry === 'CA') {
-        return [
-          { text: 'Alberta', value: 'AB' },
-          { text: 'British Columbia', value: 'BC' },
-          { text: 'Manitoba', value: 'MB' },
-          { text: 'New Brunswick', value: 'NB' },
-          { text: 'Newfoundland and Labrador', value: 'NL' },
-          { text: 'Nova Scotia', value: 'NS' },
-          { text: 'Ontario', value: 'ON' },
-          { text: 'Prince Edward Island', value: 'PE' },
-          { text: 'Quebec', value: 'QC' },
-          { text: 'Saskatchewan', value: 'SK' },
-          { text: 'Northwest Territories', value: 'NT' },
-          { text: 'Nunavut', value: 'NU' },
-          { text: 'Yukon', value: 'YT' },
-        ]
-      }
-      return []
-    },
-    checkoutURL() {
-      const url = new URL(this.$config.checkoutURL)
-      const user = this.$store.getters.getAuthUser
-      url.searchParams.append('checkout[custom][user_id]', user?.id)
-      url.searchParams.append('checkout[email]', user?.email)
-      url.searchParams.append('checkout[name]', user?.displayName)
-      return url.toString()
-    },
-    enterpriseCheckoutURL() {
-      const url = new URL(this.$config.enterpriseCheckoutURL)
-      const user = this.$store.getters.getAuthUser
-      url.searchParams.append('checkout[custom][user_id]', user?.id)
-      url.searchParams.append('checkout[email]', user?.email)
-      url.searchParams.append('checkout[name]', user?.displayName)
-      return url.toString()
-    },
+// --- Static Data ---
+const countries = [
+  { title: 'Afghanistan', value: 'AF' },
+  { title: '\u00c5land Islands', value: 'AX' },
+  { title: 'Albania', value: 'AL' },
+  { title: 'Algeria', value: 'DZ' },
+  { title: 'American Samoa', value: 'AS' },
+  { title: 'Andorra', value: 'AD' },
+  { title: 'Angola', value: 'AO' },
+  { title: 'Anguilla', value: 'AI' },
+  { title: 'Antarctica', value: 'AQ' },
+  { title: 'Antigua and Barbuda', value: 'AG' },
+  { title: 'Argentina', value: 'AR' },
+  { title: 'Armenia', value: 'AM' },
+  { title: 'Aruba', value: 'AW' },
+  { title: 'Australia', value: 'AU' },
+  { title: 'Austria', value: 'AT' },
+  { title: 'Azerbaijan', value: 'AZ' },
+  { title: 'Bahamas', value: 'BS' },
+  { title: 'Bahrain', value: 'BH' },
+  { title: 'Bangladesh', value: 'BD' },
+  { title: 'Barbados', value: 'BB' },
+  { title: 'Belarus', value: 'BY' },
+  { title: 'Belgium', value: 'BE' },
+  { title: 'Belize', value: 'BZ' },
+  { title: 'Benin', value: 'BJ' },
+  { title: 'Bermuda', value: 'BM' },
+  { title: 'Bhutan', value: 'BT' },
+  { title: 'Bolivia', value: 'BO' },
+  { title: 'Bonaire', value: 'BQ' },
+  { title: 'Bosnia and Herzegovina', value: 'BA' },
+  { title: 'Botswana', value: 'BW' },
+  { title: 'Bouvet Island', value: 'BV' },
+  { title: 'Brazil', value: 'BR' },
+  { title: 'British Indian Ocean', value: 'IO' },
+  { title: 'Brunei Darussalam', value: 'BN' },
+  { title: 'Bulgaria', value: 'BG' },
+  { title: 'Burkina Faso', value: 'BF' },
+  { title: 'Burundi', value: 'BI' },
+  { title: 'Cabo Verde', value: 'CV' },
+  { title: 'Cambodia', value: 'KH' },
+  { title: 'Cameroon', value: 'CM' },
+  { title: 'Canada', value: 'CA' },
+  { title: 'Cayman Islands', value: 'KY' },
+  { title: 'Central African Republic', value: 'CF' },
+  { title: 'Chad', value: 'TD' },
+  { title: 'Chile', value: 'CL' },
+  { title: 'China', value: 'CN' },
+  { title: 'Christmas Island', value: 'CX' },
+  { title: 'Cocos (Keeling) Islands', value: 'CC' },
+  { title: 'Colombia', value: 'CO' },
+  { title: 'Comoros', value: 'KM' },
+  { title: 'Congo', value: 'CG' },
+  { title: 'Congo', value: 'CD' },
+  { title: 'Cook Islands', value: 'CK' },
+  { title: 'Costa Rica', value: 'CR' },
+  { title: "C\u00f4te d'Ivoire", value: 'CI' },
+  { title: 'Cuba', value: 'CU' },
+  { title: 'Cura\u00e7ao', value: 'CW' },
+  { title: 'Cyprus', value: 'CY' },
+  { title: 'Czechia', value: 'CZ' },
+  { title: 'Denmark', value: 'DK' },
+  { title: 'Djibouti', value: 'DJ' },
+  { title: 'Dominica', value: 'DM' },
+  { title: 'Dominican Republic', value: 'DO' },
+  { title: 'Ecuador', value: 'EC' },
+  { title: 'Egypt', value: 'EG' },
+  { title: 'El Salvador', value: 'SV' },
+  { title: 'Equatorial Guinea', value: 'GQ' },
+  { title: 'Eritrea', value: 'ER' },
+  { title: 'Estonia', value: 'EE' },
+  { title: 'Eswatini', value: 'SZ' },
+  { title: 'Ethiopia', value: 'ET' },
+  { title: 'Falkland Islands', value: 'FK' },
+  { title: 'Faroe Islands', value: 'FO' },
+  { title: 'Fiji', value: 'FJ' },
+  { title: 'Finland', value: 'FI' },
+  { title: 'France', value: 'FR' },
+  { title: 'French Guiana', value: 'GF' },
+  { title: 'French Polynesia', value: 'PF' },
+  { title: 'French Southern Territories', value: 'TF' },
+  { title: 'Gabon', value: 'GA' },
+  { title: 'Gambia', value: 'GM' },
+  { title: 'Georgia', value: 'GE' },
+  { title: 'Germany', value: 'DE' },
+  { title: 'Ghana', value: 'GH' },
+  { title: 'Gibraltar', value: 'GI' },
+  { title: 'Greece', value: 'GR' },
+  { title: 'Greenland', value: 'GL' },
+  { title: 'Grenada', value: 'GD' },
+  { title: 'Guadeloupe', value: 'GP' },
+  { title: 'Guam', value: 'GU' },
+  { title: 'Guatemala', value: 'GT' },
+  { title: 'Guernsey', value: 'GG' },
+  { title: 'Guinea', value: 'GN' },
+  { title: 'Guinea-Bissau', value: 'GW' },
+  { title: 'Guyana', value: 'GY' },
+  { title: 'Haiti', value: 'HT' },
+  { title: 'Heard Island and McDonald Islands', value: 'HM' },
+  { title: 'Holy See', value: 'VA' },
+  { title: 'Honduras', value: 'HN' },
+  { title: 'Hong Kong', value: 'HK' },
+  { title: 'Hungary', value: 'HU' },
+  { title: 'Iceland', value: 'IS' },
+  { title: 'India', value: 'IN' },
+  { title: 'Indonesia', value: 'ID' },
+  { title: 'Iran', value: 'IR' },
+  { title: 'Iraq', value: 'IQ' },
+  { title: 'Ireland', value: 'IE' },
+  { title: 'Isle of Man', value: 'IM' },
+  { title: 'Israel', value: 'IL' },
+  { title: 'Italy', value: 'IT' },
+  { title: 'Jamaica', value: 'JM' },
+  { title: 'Japan', value: 'JP' },
+  { title: 'Jersey', value: 'JE' },
+  { title: 'Jordan', value: 'JO' },
+  { title: 'Kazakhstan', value: 'KZ' },
+  { title: 'Kenya', value: 'KE' },
+  { title: 'Kiribati', value: 'KI' },
+  { title: 'North Korea', value: 'KP' },
+  { title: 'South Korea', value: 'KR' },
+  { title: 'Kuwait', value: 'KW' },
+  { title: 'Kyrgyzstan', value: 'KG' },
+  { title: "Lao People\u2019s Democratic Republic", value: 'LA' },
+  { title: 'Latvia', value: 'LV' },
+  { title: 'Lebanon', value: 'LB' },
+  { title: 'Lesotho', value: 'LS' },
+  { title: 'Liberia', value: 'LR' },
+  { title: 'Libya', value: 'LY' },
+  { title: 'Liechtenstein', value: 'LI' },
+  { title: 'Lithuania', value: 'LT' },
+  { title: 'Luxembourg', value: 'LU' },
+  { title: 'Macao', value: 'MO' },
+  { title: 'Madagascar', value: 'MG' },
+  { title: 'Malawi', value: 'MW' },
+  { title: 'Malaysia', value: 'MY' },
+  { title: 'Maldives', value: 'MV' },
+  { title: 'Mali', value: 'ML' },
+  { title: 'Malta', value: 'MT' },
+  { title: 'Marshall Islands', value: 'MH' },
+  { title: 'Martinique', value: 'MQ' },
+  { title: 'Mauritania', value: 'MR' },
+  { title: 'Mauritius', value: 'MU' },
+  { title: 'Mayotte', value: 'YT' },
+  { title: 'Mexico', value: 'MX' },
+  { title: 'Micronesia', value: 'FM' },
+  { title: 'Moldova', value: 'MD' },
+  { title: 'Monaco', value: 'MC' },
+  { title: 'Mongolia', value: 'MN' },
+  { title: 'Montenegro', value: 'ME' },
+  { title: 'Montserrat', value: 'MS' },
+  { title: 'Morocco', value: 'MA' },
+  { title: 'Mozambique', value: 'MZ' },
+  { title: 'Myanmar', value: 'MM' },
+  { title: 'Namibia', value: 'NA' },
+  { title: 'Nauru', value: 'NR' },
+  { title: 'Nepal', value: 'NP' },
+  { title: 'Netherlands', value: 'NL' },
+  { title: 'New Caledonia', value: 'NC' },
+  { title: 'New Zealand', value: 'NZ' },
+  { title: 'Nicaragua', value: 'NI' },
+  { title: 'Niger', value: 'NE' },
+  { title: 'Nigeria', value: 'NG' },
+  { title: 'Niue', value: 'NU' },
+  { title: 'Norfolk Island', value: 'NF' },
+  { title: 'North Macedonia', value: 'MK' },
+  { title: 'Northern Mariana Islands', value: 'MP' },
+  { title: 'Norway', value: 'NO' },
+  { title: 'Oman', value: 'OM' },
+  { title: 'Pakistan', value: 'PK' },
+  { title: 'Palau', value: 'PW' },
+  { title: 'Panama', value: 'PA' },
+  { title: 'Papua New Guinea', value: 'PG' },
+  { title: 'Paraguay', value: 'PY' },
+  { title: 'Peru', value: 'PE' },
+  { title: 'Philippines', value: 'PH' },
+  { title: 'Pitcairn', value: 'PN' },
+  { title: 'Poland', value: 'PL' },
+  { title: 'Portugal', value: 'PT' },
+  { title: 'Puerto Rico', value: 'PR' },
+  { title: 'Qatar', value: 'QA' },
+  { title: 'R\u00e9union', value: 'RE' },
+  { title: 'Romania', value: 'RO' },
+  { title: 'Russian Federation', value: 'RU' },
+  { title: 'Rwanda', value: 'RW' },
+  { title: 'Saint Barth\u00e9lemy', value: 'BL' },
+  { title: 'Saint Helena, Ascension and Tristan da Cunha', value: 'SH' },
+  { title: 'Saint Kitts and Nevis', value: 'KN' },
+  { title: 'Saint Lucia', value: 'LC' },
+  { title: 'Saint Martin (French part)', value: 'MF' },
+  { title: 'Saint Pierre and Miquelon', value: 'PM' },
+  { title: 'Saint Vincent and the Grenadines', value: 'VC' },
+  { title: 'Samoa', value: 'WS' },
+  { title: 'San Marino', value: 'SM' },
+  { title: 'Sao Tome and Principe', value: 'ST' },
+  { title: 'Saudi Arabia', value: 'SA' },
+  { title: 'Senegal', value: 'SN' },
+  { title: 'Serbia', value: 'RS' },
+  { title: 'Seychelles', value: 'SC' },
+  { title: 'Sierra Leone', value: 'SL' },
+  { title: 'Singapore', value: 'SG' },
+  { title: 'Slovakia', value: 'SK' },
+  { title: 'Slovenia', value: 'SI' },
+  { title: 'Solomon Islands', value: 'SB' },
+  { title: 'Somalia', value: 'SO' },
+  { title: 'South Africa', value: 'ZA' },
+  { title: 'South Georgia and the South Sandwich Islands', value: 'GS' },
+  { title: 'South Sudan', value: 'SS' },
+  { title: 'Spain', value: 'ES' },
+  { title: 'Sri Lanka', value: 'LK' },
+  { title: 'Sudan', value: 'SD' },
+  { title: 'Suriname', value: 'SR' },
+  { title: 'Svalbard and Jan Mayen', value: 'SJ' },
+  { title: 'Sweden', value: 'SE' },
+  { title: 'Switzerland', value: 'CH' },
+  { title: 'Syrian Arab Republic', value: 'SY' },
+  { title: 'Taiwan, Province of China', value: 'TW' },
+  { title: 'Tajikistan', value: 'TJ' },
+  { title: 'Tanzania, United Republic of', value: 'TZ' },
+  { title: 'Thailand', value: 'TH' },
+  { title: 'Timor-Leste', value: 'TL' },
+  { title: 'Togo', value: 'TG' },
+  { title: 'Tokelau', value: 'TK' },
+  { title: 'Tonga', value: 'TO' },
+  { title: 'Trinidad and Tobago', value: 'TT' },
+  { title: 'Tunisia', value: 'TN' },
+  { title: 'Turkey', value: 'TR' },
+  { title: 'Turkmenistan', value: 'TM' },
+  { title: 'Turks and Caicos Islands', value: 'TC' },
+  { title: 'Tuvalu', value: 'TV' },
+  { title: 'Uganda', value: 'UG' },
+  { title: 'Ukraine', value: 'UA' },
+  { title: 'United Arab Emirates', value: 'AE' },
+  { title: 'United Kingdom', value: 'GB' },
+  { title: 'United States', value: 'US' },
+  { title: 'United States Minor Outlying Islands', value: 'UM' },
+  { title: 'Uruguay', value: 'UY' },
+  { title: 'Uzbekistan', value: 'UZ' },
+  { title: 'Vanuatu', value: 'VU' },
+  { title: 'Venezuela', value: 'VE' },
+  { title: 'Viet Nam', value: 'VN' },
+  { title: 'Virgin Islands (British)', value: 'VG' },
+  { title: 'Virgin Islands (U.S.)', value: 'VI' },
+  { title: 'Wallis and Futuna', value: 'WF' },
+  { title: 'Western Sahara', value: 'EH' },
+  { title: 'Yemen', value: 'YE' },
+  { title: 'Zambia', value: 'ZM' },
+  { title: 'Zimbabwe', value: 'ZW' },
+]
 
-    plan(): PaymentPlan {
-      return this.plans.find(
-        (x) =>
-          x.id === (this.$store.getters.getUser?.subscription_name || 'free'),
-      )!
-    },
-    isOnFreePlan(): boolean {
-      return this.plan.id === 'free'
-    },
-    isOnLifetimePlan(): boolean {
-      return this.plan.id === 'pro-lifetime'
-    },
-    subscriptionIsCancelled(): boolean {
-      return this.$store.getters.getUser?.subscription_status === 'cancelled'
-    },
-    totalMessages(): number {
-      if (this.$store.getters.getBillingUsage == null) {
-        return 0
-      }
-      return (
-        this.$store.getters.getBillingUsage.sent_messages +
-        this.$store.getters.getBillingUsage.received_messages
-      )
-    },
-  },
-  async mounted() {
-    await this.loadData()
-  },
+const plans: PaymentPlan[] = [
+  { name: 'Free', id: 'free', messagesPerMonth: 200, price: 0 },
+  { name: 'PRO - Monthly', id: 'pro-monthly', messagesPerMonth: 5000, price: 10 },
+  { name: 'PRO - Yearly', id: 'pro-yearly', messagesPerMonth: 5000, price: 100 },
+  { name: 'Ultra - Monthly', id: 'ultra-monthly', messagesPerMonth: 10000, price: 20 },
+  { name: 'Ultra - Yearly', id: 'ultra-yearly', messagesPerMonth: 10000, price: 200 },
+  { name: '20k - Monthly', id: '20k-monthly', messagesPerMonth: 20000, price: 35 },
+  { name: '20k - Yearly', id: '20k-yearly', messagesPerMonth: 20000, price: 350 },
+  { name: '50k - Monthly', id: '50k-monthly', messagesPerMonth: 50000, price: 89 },
+  { name: '100k - Monthly', id: '100k-monthly', messagesPerMonth: 100000, price: 175 },
+  { name: '200k - Monthly', id: '200k-monthly', messagesPerMonth: 200000, price: 350 },
+  { name: 'PRO - Lifetime', id: 'pro-lifetime', messagesPerMonth: 10000, price: 1000 },
+]
 
-  methods: {
-    async loadData() {
-      await Promise.all([
-        this.$store.dispatch('loadUser'),
-        this.$store.dispatch('loadBillingUsage'),
-        this.$store.dispatch('loadBillingUsageHistory'),
-      ])
-      this.loading = false
-      this.loadSubscriptionInvoices()
-    },
+// --- Computed ---
+const invoiceStateOptions = computed(() => {
+  if (invoiceFormCountry.value === 'US') {
+    return [
+      { title: 'Alabama', value: 'AL' },
+      { title: 'Alaska', value: 'AK' },
+      { title: 'Arizona', value: 'AZ' },
+      { title: 'Arkansas', value: 'AR' },
+      { title: 'California', value: 'CA' },
+      { title: 'Colorado', value: 'CO' },
+      { title: 'Connecticut', value: 'CT' },
+      { title: 'Delaware', value: 'DE' },
+      { title: 'Florida', value: 'FL' },
+      { title: 'Georgia', value: 'GA' },
+      { title: 'Hawaii', value: 'HI' },
+      { title: 'Idaho', value: 'ID' },
+      { title: 'Illinois', value: 'IL' },
+      { title: 'Indiana', value: 'IN' },
+      { title: 'Iowa', value: 'IA' },
+      { title: 'Kansas', value: 'KS' },
+      { title: 'Kentucky', value: 'KY' },
+      { title: 'Louisiana', value: 'LA' },
+      { title: 'Maine', value: 'ME' },
+      { title: 'Maryland', value: 'MD' },
+      { title: 'Massachusetts', value: 'MA' },
+      { title: 'Michigan', value: 'MI' },
+      { title: 'Minnesota', value: 'MN' },
+      { title: 'Mississippi', value: 'MS' },
+      { title: 'Missouri', value: 'MO' },
+      { title: 'Montana', value: 'MT' },
+      { title: 'Nebraska', value: 'NE' },
+      { title: 'Nevada', value: 'NV' },
+      { title: 'New Hampshire', value: 'NH' },
+      { title: 'New Jersey', value: 'NJ' },
+      { title: 'New Mexico', value: 'NM' },
+      { title: 'New York', value: 'NY' },
+      { title: 'North Carolina', value: 'NC' },
+      { title: 'North Dakota', value: 'ND' },
+      { title: 'Ohio', value: 'OH' },
+      { title: 'Oklahoma', value: 'OK' },
+      { title: 'Oregon', value: 'OR' },
+      { title: 'Pennsylvania', value: 'PA' },
+      { title: 'Rhode Island', value: 'RI' },
+      { title: 'South Carolina', value: 'SC' },
+      { title: 'South Dakota', value: 'SD' },
+      { title: 'Tennessee', value: 'TN' },
+      { title: 'Texas', value: 'TX' },
+      { title: 'Utah', value: 'UT' },
+      { title: 'Vermont', value: 'VT' },
+      { title: 'Virginia', value: 'VA' },
+      { title: 'Washington', value: 'WA' },
+      { title: 'West Virginia', value: 'WV' },
+      { title: 'Wisconsin', value: 'WI' },
+      { title: 'Wyoming', value: 'WY' },
+      { title: 'District of Columbia', value: 'DC' },
+    ]
+  }
+  if (invoiceFormCountry.value === 'CA') {
+    return [
+      { title: 'Alberta', value: 'AB' },
+      { title: 'British Columbia', value: 'BC' },
+      { title: 'Manitoba', value: 'MB' },
+      { title: 'New Brunswick', value: 'NB' },
+      { title: 'Newfoundland and Labrador', value: 'NL' },
+      { title: 'Nova Scotia', value: 'NS' },
+      { title: 'Ontario', value: 'ON' },
+      { title: 'Prince Edward Island', value: 'PE' },
+      { title: 'Quebec', value: 'QC' },
+      { title: 'Saskatchewan', value: 'SK' },
+      { title: 'Northwest Territories', value: 'NT' },
+      { title: 'Nunavut', value: 'NU' },
+      { title: 'Yukon', value: 'YT' },
+    ]
+  }
+  return []
+})
 
-    loadSubscriptionInvoices() {
-      this.loadingSubscriptionPayments = true
-      this.$store
-        .dispatch('indexSubscriptionPayments')
-        .then((response: ResponsesUserSubscriptionPaymentsResponse) => {
-          this.payments = response
-        })
-        .finally(() => {
-          this.loadingSubscriptionPayments = false
-        })
-    },
+const checkoutURL = computed(() => {
+  const url = new URL(config.public.checkoutURL as string)
+  const user = store.getAuthUser
+  url.searchParams.append('checkout[custom][user_id]', user?.id ?? '')
+  url.searchParams.append('checkout[email]', user?.email ?? '')
+  url.searchParams.append('checkout[name]', user?.displayName ?? '')
+  return url.toString()
+})
 
-    generateInvoice() {
-      this.errorMessages = new ErrorMessages()
-      this.loading = true
-      this.$store
-        .dispatch('generateSubscriptionPaymentInvoice', {
-          subscriptionInvoiceId: this.selectedPayment?.id || '',
-          request: {
-            name: this.invoiceFormName,
-            address: this.invoiceFormAddress,
-            city: this.invoiceFormCity,
-            state: this.invoiceFormState,
-            zip_code: this.invoiceFormZipCode,
-            country: this.invoiceFormCountry,
-            notes: this.invoiceFormNotes,
-          },
-        } as {
-          subscriptionInvoiceId: string
-          request: RequestsUserPaymentInvoice
-        })
-        .then(() => {
-          this.subscriptionInvoiceDialog = false
-        })
-        .catch((error: ErrorMessages) => {
-          this.errorMessages = error
-        })
-        .finally(() => {
-          this.loading = false
-        })
-    },
+const enterpriseCheckoutURL = computed(() => {
+  const url = new URL(config.public.enterpriseCheckoutURL as string)
+  const user = store.getAuthUser
+  url.searchParams.append('checkout[custom][user_id]', user?.id ?? '')
+  url.searchParams.append('checkout[email]', user?.email ?? '')
+  url.searchParams.append('checkout[name]', user?.displayName ?? '')
+  return url.toString()
+})
 
-    updateDetails() {
-      this.loading = true
-      this.$store
-        .dispatch('getSubscriptionUpdateLink')
-        .then((link: string) => {
-          window.location.href = link
-        })
-        .catch(() => {
-          this.loading = false
-        })
-    },
-    cancelPlan() {
-      this.loading = true
-      this.$store
-        .dispatch('cancelSubscription')
-        .then(() => {
-          this.$store.dispatch('addNotification', {
-            message: 'Subscription cancelled successfully',
-            type: 'success',
-          })
-          this.$router.push('/')
-        })
-        .catch(() => {
-          this.loading = false
-        })
-    },
+const plan = computed((): PaymentPlan => {
+  return plans.find(
+    (x) => x.id === (store.getUser?.subscription_name || 'free'),
+  )!
+})
 
-    showInvoiceDialog(payment: subscriptionPayment) {
-      this.selectedPayment = payment
-      this.subscriptionInvoiceDialog = true
-    },
-  },
+const isOnFreePlan = computed((): boolean => {
+  return plan.value.id === 'free'
+})
+
+const isOnLifetimePlan = computed((): boolean => {
+  return plan.value.id === 'pro-lifetime'
+})
+
+const subscriptionIsCancelled = computed((): boolean => {
+  return store.getUser?.subscription_status === 'cancelled'
+})
+
+const totalMessages = computed((): number => {
+  if (store.getBillingUsage == null) {
+    return 0
+  }
+  return store.getBillingUsage.sent_messages + store.getBillingUsage.received_messages
+})
+
+// --- Methods ---
+async function loadData() {
+  await Promise.all([
+    store.loadUser(),
+    store.loadBillingUsage(),
+    store.loadBillingUsageHistory(),
+  ])
+  loading.value = false
+  loadSubscriptionInvoices()
+}
+
+function loadSubscriptionInvoices() {
+  loadingSubscriptionPayments.value = true
+  store
+    .indexSubscriptionPayments()
+    .then((response: ResponsesUserSubscriptionPaymentsResponse) => {
+      payments.value = response
+    })
+    .finally(() => {
+      loadingSubscriptionPayments.value = false
+    })
+}
+
+function generateInvoice() {
+  errorMessages.value = new ErrorMessages()
+  loading.value = true
+  store
+    .generateSubscriptionPaymentInvoice({
+      subscriptionInvoiceId: selectedPayment.value?.id || '',
+      request: {
+        name: invoiceFormName.value,
+        address: invoiceFormAddress.value,
+        city: invoiceFormCity.value,
+        state: invoiceFormState.value,
+        zip_code: invoiceFormZipCode.value,
+        country: invoiceFormCountry.value,
+        notes: invoiceFormNotes.value,
+      } as RequestsUserPaymentInvoice,
+    })
+    .then(() => {
+      subscriptionInvoiceDialog.value = false
+    })
+    .catch((error: ErrorMessages) => {
+      errorMessages.value = error
+    })
+    .finally(() => {
+      loading.value = false
+    })
+}
+
+function updateDetails() {
+  loading.value = true
+  store
+    .getSubscriptionUpdateLink()
+    .then((link: string) => {
+      window.location.href = link
+    })
+    .catch(() => {
+      loading.value = false
+    })
+}
+
+function cancelPlan() {
+  loading.value = true
+  store
+    .cancelSubscription()
+    .then(() => {
+      store.addNotification({
+        message: 'Subscription cancelled successfully',
+        type: 'success',
+      })
+      router.push('/')
+    })
+    .catch(() => {
+      loading.value = false
+    })
+}
+
+function showInvoiceDialog(payment: SubscriptionPayment) {
+  selectedPayment.value = payment
+  subscriptionInvoiceDialog.value = true
+}
+
+// --- Lifecycle ---
+onMounted(async () => {
+  await loadData()
 })
 </script>

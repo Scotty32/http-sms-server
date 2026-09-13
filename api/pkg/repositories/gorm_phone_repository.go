@@ -165,6 +165,20 @@ func (repository *gormPhoneRepository) Index(ctx context.Context, userID entitie
 	return phones, nil
 }
 
+// Count returns the number of entities.Phone for a user
+func (repository *gormPhoneRepository) Count(ctx context.Context, userID entities.UserID) (int64, error) {
+	ctx, span := repository.tracer.Start(ctx)
+	defer span.End()
+
+	var count int64
+	if err := repository.db.WithContext(ctx).Model(&entities.Phone{}).Where("user_id = ?", userID).Count(&count).Error; err != nil {
+		msg := fmt.Sprintf("cannot count phones with userID [%s]", userID)
+		return 0, repository.tracer.WrapErrorSpan(span, stacktrace.Propagate(err, msg))
+	}
+
+	return count, nil
+}
+
 func (repository *gormPhoneRepository) getCacheKey(userID entities.UserID, phoneNumber string) string {
 	return fmt.Sprintf("user:%s:phone:%s", userID, phoneNumber)
 }

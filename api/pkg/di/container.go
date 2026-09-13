@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -30,6 +31,7 @@ import (
 	"github.com/NdoleStudio/httpsms/pkg/cache"
 	"github.com/NdoleStudio/lemonsqueezy-go"
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 	"go.opentelemetry.io/otel/sdk/metric"
@@ -59,6 +61,7 @@ import (
 	"google.golang.org/api/option"
 
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/recover"
 
 	"github.com/NdoleStudio/httpsms/pkg/entities"
 	"github.com/NdoleStudio/httpsms/pkg/listeners"
@@ -153,8 +156,14 @@ func NewContainer(projectID string, version string) (container *Container) {
 	container.RegisterPhoneAPIKeyRoutes()
 	container.RegisterPhoneAPIKeyListeners()
 
+	container.RegisterAppRoutes()
+	container.RegisterAuthRoutes()
+
 	container.RegisterMarketingListeners()
 	container.RegisterWebsocketListeners()
+
+	container.RegisterV2MessageRoutes()
+	container.RegisterV2WebhookListeners()
 
 	// this has to be last since it registers the /* route
 	container.RegisterSwaggerRoutes()
@@ -172,22 +181,28 @@ func (container *Container) App() (app *fiber.App) {
 
 	app = fiber.New()
 
+	// Recovers from any panic in a handler/middleware and turns it into a 500 response
+	// instead of crashing the whole process (and taking down every other request in flight).
+	app.Use(recover.New())
+
 	if os.Getenv("USE_HTTP_LOGGER") == "true" {
 		app.Use(fiberLogger.New())
 	}
 
 	app.Use(otelfiber.Middleware())
+	allowOrigins := getEnvWithDefault("CORS_ALLOW_ORIGINS", getEnvWithDefault("APP_URL", "*"))
 	app.Use(cors.New(
 		cors.Config{
-			AllowOrigins:     getEnvWithDefault("CORS_ALLOW_ORIGINS", "*"),
-			AllowHeaders:     getEnvWithDefault("CORS_ALLOW_HEADERS", "*"),
+			AllowOrigins:     allowOrigins,
+			AllowHeaders:     getEnvWithDefault("CORS_ALLOW_HEADERS", "Origin,Content-Type,Accept,Authorization,x-api-key,x-api-secret,X-Client-Version"),
 			AllowMethods:     getEnvWithDefault("CORS_ALLOW_METHODS", "GET,POST,PUT,DELETE,OPTIONS"),
-			AllowCredentials: false,
-			ExposeHeaders:    getEnvWithDefault("CORS_EXPOSE_HEADERS", "*"),
+			AllowCredentials: true,
+			ExposeHeaders:    getEnvWithDefault("CORS_EXPOSE_HEADERS", ""),
 		}),
 	)
 	app.Use(middlewares.HTTPRequestLogger(container.Tracer(), container.Logger()))
-	app.Use(middlewares.BearerAuth(container.Logger(), container.Tracer(), container.FirebaseAuthClient()))
+	app.Use(middlewares.SessionAuth(container.Logger(), container.Tracer(), container.SessionRepository()))
+	app.Use(middlewares.BearerAuth(container.Logger(), container.Tracer(), os.Getenv("JWT_SECRET")))
 	app.Use(middlewares.APIKeyAuth(container.Logger(), container.Tracer(), container.UserRepository()))
 
 	container.app = app
@@ -231,7 +246,7 @@ func (container *Container) GormLogger() gormLogger.Interface {
 }
 
 func (container *Container) connect(dsn string, config *gorm.Config) (db *gorm.DB, err error) {
-	if strings.HasPrefix(dsn, "postgres://") {
+	if strings.HasPrefix(dsn, "postgres://") || strings.HasPrefix(dsn, "postgresql://") {
 		return gorm.Open(postgres.Open(dsn), config)
 	}
 	return gorm.Open(sqlite.New(sqlite.Config{
@@ -341,9 +356,17 @@ func (container *Container) DB() (db *gorm.DB) {
 	container.logger.Debug(fmt.Sprintf("Running migrations for %T", db))
 	// This prevents a bug in the Gorm AutoMigrate where it tries to delete this no existent constraints
 	db.Exec(`
-ALTER TABLE users ADD CONSTRAINT IF NOT EXISTS uni_users_api_key CHECK (api_key IS NOT NULL);
-ALTER TABLE phone_api_keys ADD CONSTRAINT IF NOT EXISTS uni_phone_api_keys_api_key CHECK (api_key IS NOT NULL);
-ALTER TABLE discords ADD CONSTRAINT IF NOT EXISTS uni_discords_server_id CHECK (server_id IS NOT NULL);`)
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'uni_users_api_key') THEN
+    ALTER TABLE users ADD CONSTRAINT uni_users_api_key CHECK (api_key IS NOT NULL);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'uni_phone_api_keys_api_key') THEN
+    ALTER TABLE phone_api_keys ADD CONSTRAINT uni_phone_api_keys_api_key CHECK (api_key IS NOT NULL);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'uni_discords_server_id') THEN
+    ALTER TABLE discords ADD CONSTRAINT uni_discords_server_id CHECK (server_id IS NOT NULL);
+  END IF;
+END $$;`)
 
 	if err = db.AutoMigrate(&entities.Message{}); err != nil {
 		container.logger.Fatal(stacktrace.Propagate(err, fmt.Sprintf("cannot migrate %T", &entities.Message{})))
@@ -385,6 +408,18 @@ ALTER TABLE discords ADD CONSTRAINT IF NOT EXISTS uni_discords_server_id CHECK (
 		container.logger.Fatal(stacktrace.Propagate(err, fmt.Sprintf("cannot migrate %T", &entities.PhoneAPIKey{})))
 	}
 
+	if err = db.AutoMigrate(&entities.App{}); err != nil {
+		container.logger.Fatal(stacktrace.Propagate(err, fmt.Sprintf("cannot migrate %T", &entities.App{})))
+	}
+
+	if err = db.AutoMigrate(&entities.Session{}); err != nil {
+		container.logger.Fatal(stacktrace.Propagate(err, fmt.Sprintf("cannot migrate %T", &entities.Session{})))
+	}
+
+	if err = db.AutoMigrate(&entities.Plan{}); err != nil {
+		container.logger.Fatal(stacktrace.Propagate(err, fmt.Sprintf("cannot migrate %T", &entities.Plan{})))
+	}
+
 	return container.db
 }
 
@@ -413,8 +448,8 @@ func (container *Container) Cache() cache.Cache {
 	if err != nil {
 		container.logger.Fatal(stacktrace.Propagate(err, fmt.Sprintf("cannot parse redis url [%s]", os.Getenv("REDIS_URL"))))
 	}
-	opt.TLSConfig = &tls.Config{
-		MinVersion: tls.VersionTLS12,
+	if opt.TLSConfig != nil {
+		opt.TLSConfig.MinVersion = tls.VersionTLS12
 	}
 
 	redisClient := redis.NewClient(opt)
@@ -471,11 +506,69 @@ func (container *Container) EventsQueueConfiguration() (config services.PushQueu
 func (container *Container) EventsQueue() (queue services.PushQueue) {
 	container.logger.Debug("creating events services.PushQueue")
 
-	if os.Getenv("EVENTS_QUEUE_TYPE") == "emulator" {
+	switch os.Getenv("EVENTS_QUEUE_TYPE") {
+	case "emulator":
 		return container.EmulatorEventsQueue()
+	case "redis":
+		return container.RedisEventsQueue()
+	default:
+		return container.CloudTaskEventsQueue()
+	}
+}
+
+// RedisUniversalClient creates a new instance of redis.UniversalClient, shared by the
+// cache and the redis-backed events queue.
+func (container *Container) RedisUniversalClient() redis.UniversalClient {
+	container.logger.Debug("creating redis.UniversalClient")
+
+	opt, err := redis.ParseURL(os.Getenv("REDIS_URL"))
+	if err != nil {
+		container.logger.Fatal(stacktrace.Propagate(err, fmt.Sprintf("cannot parse redis url [%s]", os.Getenv("REDIS_URL"))))
+	}
+	if opt.TLSConfig != nil {
+		opt.TLSConfig.MinVersion = tls.VersionTLS12
 	}
 
-	return container.CloudTaskEventsQueue()
+	return redis.NewClient(opt)
+}
+
+// RedisEventsQueue creates a Redis-backed (asynq) instance of events services.PushQueue -
+// a self-hostable alternative to Google Cloud Tasks, with retries and persistence.
+func (container *Container) RedisEventsQueue() (queue services.PushQueue) {
+	container.logger.Debug("creating redis events services.PushQueue")
+	return services.RedisPushQueue(
+		container.Logger(),
+		container.Tracer(),
+		container.RedisUniversalClient(),
+		container.EventsQueueConfiguration(),
+	)
+}
+
+// StartRedisPushQueueWorker starts the in-process asynq worker that executes tasks
+// enqueued by RedisEventsQueue. It runs in the background and returns immediately.
+// Only relevant when EVENTS_QUEUE_TYPE=redis.
+func (container *Container) StartRedisPushQueueWorker() {
+	container.logger.Debug("starting redis push queue worker")
+
+	queueName := getEnvWithDefault("EVENTS_QUEUE_NAME", "events-local")
+	server := asynq.NewServerFromRedisClient(
+		container.RedisUniversalClient(),
+		asynq.Config{
+			Queues: map[string]int{
+				queueName: 1,
+			},
+		},
+	)
+
+	mux := asynq.NewServeMux()
+	mux.Handle(services.RedisPushQueueTaskType, services.NewRedisPushQueueHandler(
+		container.Logger(),
+		container.HTTPClient("redis_push_queue_worker"),
+	))
+
+	if err := server.Start(mux); err != nil {
+		container.logger.Fatal(stacktrace.Propagate(err, "cannot start redis push queue worker"))
+	}
 }
 
 // EmulatorEventsQueue creates an in process instance of events services.PushQueue
@@ -723,6 +816,41 @@ func (container *Container) PhoneAPIKeyRepository() (repository repositories.Pho
 	)
 }
 
+// PlanRepository creates a new instance of repositories.PlanRepository
+func (container *Container) PlanRepository() (repository repositories.PlanRepository) {
+	container.logger.Debug("creating GORM repositories.PlanRepository")
+	return repositories.NewGormPlanRepository(
+		container.Logger(),
+		container.Tracer(),
+		container.DB(),
+	)
+}
+
+// AppRistrettoCache creates an in-memory *ristretto.Cache[string, *entities.App]
+func (container *Container) AppRistrettoCache() (cache *ristretto.Cache[string, *entities.App]) {
+	container.logger.Debug(fmt.Sprintf("creating %T", cache))
+	ristrettoCache, err := ristretto.NewCache[string, *entities.App](&ristretto.Config[string, *entities.App]{
+		MaxCost:     5000,
+		NumCounters: 5000 * 10,
+		BufferItems: 64,
+	})
+	if err != nil {
+		container.logger.Fatal(stacktrace.Propagate(err, "cannot create app ristretto cache"))
+	}
+	return ristrettoCache
+}
+
+// AppRepository creates a new instance of repositories.AppRepository
+func (container *Container) AppRepository() (repository repositories.AppRepository) {
+	container.logger.Debug("creating GORM repositories.AppRepository")
+	return repositories.NewGormAppRepository(
+		container.Logger(),
+		container.Tracer(),
+		container.DB(),
+		container.AppRistrettoCache(),
+	)
+}
+
 // Integration3CXRepository creates a new instance of repositories.Integration3CxRepository
 func (container *Container) Integration3CXRepository() (repository repositories.Integration3CxRepository) {
 	container.logger.Debug("creating GORM repositories.Integration3CxRepository")
@@ -827,6 +955,7 @@ func (container *Container) BillingService() (service *services.BillingService) 
 		container.UserEmailFactory(),
 		container.BillingUsageRepository(),
 		container.UserRepository(),
+		container.PlanRepository(),
 	)
 }
 
@@ -925,6 +1054,8 @@ func (container *Container) PhoneService() (service *services.PhoneService) {
 		container.Logger(),
 		container.Tracer(),
 		container.PhoneRepository(),
+		container.UserRepository(),
+		container.PlanRepository(),
 		container.EventDispatcher(),
 	)
 }
@@ -935,7 +1066,6 @@ func (container *Container) MarketingService() (service *services.MarketingServi
 	return services.NewMarketingService(
 		container.Logger(),
 		container.Tracer(),
-		container.FirebaseAuthClient(),
 		container.PlunkClient(),
 	)
 }
@@ -951,9 +1081,63 @@ func (container *Container) UserService() (service *services.UserService) {
 		container.UserEmailFactory(),
 		container.LemonsqueezyClient(),
 		container.EventDispatcher(),
-		container.FirebaseAuthClient(),
 		container.HTTPClient("lemonsqueezy"),
 	)
+}
+
+// SessionRepository creates a new instance of repositories.SessionRepository
+func (container *Container) SessionRepository() (repository repositories.SessionRepository) {
+	container.logger.Debug("creating GORM repositories.SessionRepository")
+	return repositories.NewGormSessionRepository(
+		container.Logger(),
+		container.Tracer(),
+		container.DB(),
+	)
+}
+
+// AuthService creates a new instance of services.AuthService
+func (container *Container) AuthService() (service *services.AuthService) {
+	container.logger.Debug(fmt.Sprintf("creating %T", service))
+
+	sessionDuration := 30 * 24 * time.Hour
+	if d := os.Getenv("SESSION_DURATION"); d != "" {
+		if parsed, err := time.ParseDuration(d); err == nil {
+			sessionDuration = parsed
+		}
+	}
+
+	return services.NewAuthService(
+		container.Logger(),
+		container.Tracer(),
+		os.Getenv("JWT_SECRET"),
+		sessionDuration,
+		container.UserRepository(),
+		container.SessionRepository(),
+		container.EventDispatcher(),
+	)
+}
+
+// AuthHandlerValidator creates a new instance of validators.AuthHandlerValidator
+func (container *Container) AuthHandlerValidator() (v *validators.AuthHandlerValidator) {
+	container.logger.Debug(fmt.Sprintf("creating %T", v))
+	return validators.NewAuthHandlerValidator(container.Logger(), container.Tracer())
+}
+
+// AuthHandler creates a new instance of handlers.AuthHandler
+func (container *Container) AuthHandler() (h *handlers.AuthHandler) {
+	container.logger.Debug(fmt.Sprintf("creating %T", h))
+	return handlers.NewAuthHandler(
+		container.Logger(),
+		container.Tracer(),
+		container.AuthHandlerValidator(),
+		container.AuthService(),
+	)
+}
+
+// RegisterAuthRoutes registers auth routes
+func (container *Container) RegisterAuthRoutes() {
+	container.logger.Debug(fmt.Sprintf("registering %T routes", &handlers.AuthHandler{}))
+	container.AuthHandler().RegisterRoutes(container.App())
 }
 
 // Mailer creates a new instance of emails.Mailer
@@ -1048,6 +1232,7 @@ func (container *Container) UserHandler() (handler *handlers.UserHandler) {
 		container.Tracer(),
 		container.UserHandlerValidator(),
 		container.UserService(),
+		container.V2WebhookService(),
 	)
 }
 
@@ -1232,7 +1417,8 @@ func (container *Container) RegisterPhoneAPIKeyRoutes() {
 // RegisterDiscordRoutes registers routes for the /discord prefix
 func (container *Container) RegisterDiscordRoutes() {
 	container.logger.Debug(fmt.Sprintf("registering %T routes", &handlers.DiscordHandler{}))
-	container.DiscordHandler().RegisterRoutes(container.App(), container.AuthenticatedMiddleware())
+	container.DiscordHandler().RegisterRoutes(container.App(), container.AuthenticatedMiddleware(), container.AuthenticatedMiddleware())
+
 }
 
 // RegisterMessageThreadListeners registers event listeners for listeners.MessageThreadListener
@@ -1438,6 +1624,50 @@ func (container *Container) PhoneAPIKeyService() (service *services.PhoneAPIKeyS
 	)
 }
 
+// AppService creates a new instance of services.AppService
+func (container *Container) AppService() (service *services.AppService) {
+	container.logger.Debug(fmt.Sprintf("creating %T", service))
+	return services.NewAppService(
+		container.Logger(),
+		container.Tracer(),
+		container.AppRepository(),
+	)
+}
+
+// AppHandlerValidator creates a new instance of validators.AppHandlerValidator
+func (container *Container) AppHandlerValidator() (validator *validators.AppHandlerValidator) {
+	container.logger.Debug(fmt.Sprintf("creating %T", validator))
+	return validators.NewAppHandlerValidator(
+		container.Logger(),
+		container.Tracer(),
+	)
+}
+
+// AppHandler creates a new instance of handlers.AppHandler
+func (container *Container) AppHandler() (handler *handlers.AppHandler) {
+	container.logger.Debug(fmt.Sprintf("creating %T", handler))
+	return handlers.NewAppHandler(
+		container.Logger(),
+		container.Tracer(),
+		container.AppHandlerValidator(),
+		container.AppService(),
+		container.MessageService(),
+		container.BillingService(),
+	)
+}
+
+// AppAuthMiddleware creates a new instance of the App auth middleware
+func (container *Container) AppAuthMiddleware() fiber.Handler {
+	container.logger.Debug("creating middlewares.AppAuth")
+	return middlewares.AppAuth(container.Logger(), container.Tracer(), container.AppRepository())
+}
+
+// SessionOnlyMiddleware creates a middleware that rejects non-session authentication
+func (container *Container) SessionOnlyMiddleware() fiber.Handler {
+	container.logger.Debug("creating middlewares.SessionOnly")
+	return middlewares.SessionOnly(container.Tracer())
+}
+
 // NotificationService creates a new instance of services.PhoneNotificationService
 func (container *Container) NotificationService() (service *services.PhoneNotificationService) {
 	container.logger.Debug(fmt.Sprintf("creating %T", service))
@@ -1449,6 +1679,15 @@ func (container *Container) NotificationService() (service *services.PhoneNotifi
 		container.PhoneNotificationRepository(),
 		container.EventDispatcher(),
 	)
+}
+
+// RegisterAppRoutes registers routes for the /v1/apps prefix
+func (container *Container) RegisterAppRoutes() {
+	container.logger.Debug(fmt.Sprintf("registering %T routes", &handlers.AppHandler{}))
+	// App key authenticated routes (for sending messages via app)
+	container.AppHandler().RegisterAppKeyRoutes(container.App(), container.AppAuthMiddleware(), container.AuthenticatedMiddleware())
+	// User authenticated routes (for managing apps) - session only
+	container.AppHandler().RegisterRoutes(container.App(), container.AuthenticatedMiddleware())
 }
 
 // RegisterMessageRoutes registers routes for the /messages prefix
@@ -1522,6 +1761,53 @@ func (container *Container) RegisterSwaggerRoutes() {
 			});
 		});`,
 	}))
+}
+
+// V2WebhookService creates a new instance of services.V2WebhookService
+func (container *Container) V2WebhookService() (service *services.V2WebhookService) {
+	container.logger.Debug(fmt.Sprintf("creating %T", service))
+	return services.NewV2WebhookService(
+		container.Logger(),
+		container.Tracer(),
+		&http.Client{
+			Timeout:   15 * time.Second,
+			Transport: container.HTTPRoundTripperWithoutRetry("v2_webhook"),
+		},
+		container.UserRepository(),
+		container.AppRepository(),
+	)
+}
+
+// V2MessageHandler creates a new instance of handlers.V2MessageHandler
+func (container *Container) V2MessageHandler() (handler *handlers.V2MessageHandler) {
+	container.logger.Debug(fmt.Sprintf("creating %T", handler))
+	return handlers.NewV2MessageHandler(
+		container.Logger(),
+		container.Tracer(),
+		container.AppHandlerValidator(),
+		container.MessageService(),
+		container.BillingService(),
+	)
+}
+
+// RegisterV2MessageRoutes registers routes for /v2
+func (container *Container) RegisterV2MessageRoutes() {
+	container.logger.Debug(fmt.Sprintf("registering %T routes", &handlers.V2MessageHandler{}))
+	container.V2MessageHandler().RegisterRoutes(container.App(), container.AppAuthMiddleware(), container.PhoneAPIKeyMiddleware())
+}
+
+// RegisterV2WebhookListeners registers event listeners for v2 delivery webhooks
+func (container *Container) RegisterV2WebhookListeners() {
+	container.logger.Debug(fmt.Sprintf("registering listeners for %T", listeners.V2WebhookListener{}))
+	_, routes := listeners.NewV2WebhookListener(
+		container.Logger(),
+		container.Tracer(),
+		container.V2WebhookService(),
+	)
+
+	for event, handler := range routes {
+		container.EventDispatcher().Subscribe(event, handler)
+	}
 }
 
 // HeartbeatRepository registers a new instance of repositories.HeartbeatRepository
@@ -1676,8 +1962,25 @@ func jsonLogger(skipFrameCount int) *zerodriver.Logger {
 	zerolog.TimestampFieldName = "time"
 	zerolog.TimeFieldFormat = time.RFC3339Nano
 
-	zl := zerolog.New(os.Stderr).With().Timestamp().CallerWithSkipFrameCount(skipFrameCount).Logger()
+	zl := zerolog.New(logWriter(os.Stderr)).With().Timestamp().CallerWithSkipFrameCount(skipFrameCount).Logger()
 	return &zerodriver.Logger{Logger: &zl}
+}
+
+// logWriter returns w, tee-ed to the file at LOG_FILE if that env var is set,
+// so logs survive container restarts/recreation instead of only living in `docker logs`.
+func logWriter(w io.Writer) io.Writer {
+	path := os.Getenv("LOG_FILE")
+	if path == "" {
+		return w
+	}
+
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "cannot open LOG_FILE [%s]: %v\n", path, err)
+		return w
+	}
+
+	return io.MultiWriter(w, file)
 }
 
 func hostName() string {
@@ -1691,7 +1994,7 @@ func hostName() string {
 func consoleLogger(skipFrameCount int) *zerodriver.Logger {
 	l := zerolog.New(
 		zerolog.ConsoleWriter{
-			Out: os.Stderr,
+			Out: logWriter(os.Stderr),
 		}).With().Timestamp().CallerWithSkipFrameCount(skipFrameCount).Logger()
 	return &zerodriver.Logger{
 		Logger: &l,

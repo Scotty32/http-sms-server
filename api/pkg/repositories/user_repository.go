@@ -23,6 +23,9 @@ type UserRepository interface {
 	// RotateAPIKey updates the API Key of a user
 	RotateAPIKey(ctx context.Context, userID entities.UserID) (*entities.User, error)
 
+	// RotateWebhookSecret generates a new webhook signing secret for a user
+	RotateWebhookSecret(ctx context.Context, userID entities.UserID) (*entities.User, error)
+
 	// LoadOrStore an entities.User by entities.AuthContext
 	LoadOrStore(ctx context.Context, user entities.AuthContext) (*entities.User, bool, error)
 

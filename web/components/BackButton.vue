@@ -1,34 +1,37 @@
 <template>
   <v-btn
     color="default"
-    :small="$vuetify.breakpoint.smAndDown"
+    :size="display.smAndDown.value ? 'small' : 'default'"
     :block="block"
     @click="goBack"
   >
-    <v-icon>{{ mdiArrowLeft }}</v-icon>
+    <v-icon :icon="mdiArrowLeft" />
     Go Back
   </v-btn>
 </template>
 
-<script lang="ts">
-import { Vue, Component, Prop } from 'vue-property-decorator'
-import { Location } from 'vue-router'
+<script setup lang="ts">
 import { mdiArrowLeft } from '@mdi/js'
-@Component
-export default class BackButton extends Vue {
-  @Prop({ required: false }) route?: Location
-  @Prop({ required: false, type: Boolean, default: false }) block!: boolean
-  mdiArrowLeft = mdiArrowLeft
-  goBack(): void {
-    if (this.route) {
-      this.$router.push(this.route)
-      return
-    }
-    if (window.history.length > 1) {
-      this.$router.back()
-      return
-    }
-    this.$router.push({ name: 'index' })
+import type { RouteLocationRaw } from 'vue-router'
+import { useDisplay } from 'vuetify'
+
+const props = defineProps<{
+  route?: RouteLocationRaw
+  block?: boolean
+}>()
+
+const router = useRouter()
+const display = useDisplay()
+
+function goBack() {
+  if (props.route) {
+    router.push(props.route)
+    return
   }
+  if (window.history.length > 1) {
+    router.back()
+    return
+  }
+  router.push({ name: 'index' })
 }
 </script>

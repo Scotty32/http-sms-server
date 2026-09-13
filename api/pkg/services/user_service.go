@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"firebase.google.com/go/auth"
 	"github.com/NdoleStudio/httpsms/pkg/emails"
 	"github.com/NdoleStudio/httpsms/pkg/events"
 	"github.com/NdoleStudio/lemonsqueezy-go"
@@ -29,7 +28,6 @@ type UserService struct {
 	mailer             emails.Mailer
 	repository         repositories.UserRepository
 	dispatcher         *EventDispatcher
-	authClient         *auth.Client
 	lemonsqueezyClient *lemonsqueezy.Client
 	httpClient         *http.Client
 }
@@ -43,7 +41,6 @@ func NewUserService(
 	emailFactory emails.UserEmailFactory,
 	lemonsqueezyClient *lemonsqueezy.Client,
 	dispatcher *EventDispatcher,
-	authClient *auth.Client,
 	httpClient *http.Client,
 ) (s *UserService) {
 	return &UserService{
@@ -53,7 +50,6 @@ func NewUserService(
 		emailFactory:       emailFactory,
 		repository:         repository,
 		dispatcher:         dispatcher,
-		authClient:         authClient,
 		lemonsqueezyClient: lemonsqueezyClient,
 		httpClient:         httpClient,
 	}
@@ -188,6 +184,7 @@ func (service *UserService) GetByID(ctx context.Context, userID entities.UserID)
 type UserUpdateParams struct {
 	Timezone      *time.Location
 	ActivePhoneID *uuid.UUID
+	WebhookURL    *string
 }
 
 // Update an entities.User
@@ -209,6 +206,9 @@ func (service *UserService) Update(ctx context.Context, source string, authUser 
 
 	user.Timezone = params.Timezone.String()
 	user.ActivePhoneID = params.ActivePhoneID
+	if params.WebhookURL != nil {
+		user.WebhookURL = params.WebhookURL
+	}
 
 	if err = service.repository.Update(ctx, user); err != nil {
 		msg := fmt.Sprintf("cannot save user with id [%s]", user.ID)
@@ -283,6 +283,21 @@ func (service *UserService) RotateAPIKey(ctx context.Context, source string, use
 		return user, nil
 	}
 
+	return user, nil
+}
+
+// RotateWebhookSecret generates a new webhook signing secret for an entities.User
+func (service *UserService) RotateWebhookSecret(ctx context.Context, userID entities.UserID) (*entities.User, error) {
+	ctx, span, ctxLogger := service.tracer.StartWithLogger(ctx, service.logger)
+	defer span.End()
+
+	user, err := service.repository.RotateWebhookSecret(ctx, userID)
+	if err != nil {
+		msg := fmt.Sprintf("could not rotate webhook secret for [%T] with ID [%s]", user, userID)
+		return nil, service.tracer.WrapErrorSpan(span, stacktrace.Propagate(err, msg))
+	}
+
+	ctxLogger.Info(fmt.Sprintf("rotated the webhook secret for [%T] with ID [%s] in the [%T]", user, user.ID, service.repository))
 	return user, nil
 }
 
@@ -426,6 +441,11 @@ func (service *UserService) InitiateSubscriptionCancel(ctx context.Context, user
 		return service.tracer.WrapErrorSpan(span, stacktrace.Propagate(err, msg))
 	}
 
+	if user.SubscriptionID == nil {
+		msg := fmt.Sprintf("[%T] with ID [%s] has no active subscription to cancel", user, user.ID)
+		return service.tracer.WrapErrorSpan(span, stacktrace.NewErrorWithCode(ErrCodeNoActiveSubscription, msg))
+	}
+
 	if _, _, err = service.lemonsqueezyClient.Subscriptions.Cancel(ctx, *user.SubscriptionID); err != nil {
 		msg := fmt.Sprintf("could not cancel subscription [%s] for [%T] with with ID [%s]", *user.SubscriptionID, user, user.ID)
 		return service.tracer.WrapErrorSpan(span, stacktrace.Propagate(err, msg))
@@ -444,6 +464,11 @@ func (service *UserService) GetSubscriptionUpdateURL(ctx context.Context, userID
 	if err != nil {
 		msg := fmt.Sprintf("could not get [%T] with with ID [%s]", user, userID)
 		return "", service.tracer.WrapErrorSpan(span, stacktrace.Propagate(err, msg))
+	}
+
+	if user.SubscriptionID == nil {
+		msg := fmt.Sprintf("[%T] with ID [%s] has no active subscription", user, user.ID)
+		return "", service.tracer.WrapErrorSpan(span, stacktrace.NewErrorWithCode(ErrCodeNoActiveSubscription, msg))
 	}
 
 	subscription, _, err := service.lemonsqueezyClient.Subscriptions.Get(ctx, *user.SubscriptionID)
@@ -536,16 +561,15 @@ func (service *UserService) UpdateSubscription(ctx context.Context, params *even
 	return nil
 }
 
-// DeleteAuthUser deletes an entities.AuthContext from firebase
+// ErrCodeNoActiveSubscription is returned when a user without an active subscription
+// tries to perform an action that requires one (cancel, get update URL, etc.)
+const ErrCodeNoActiveSubscription = stacktrace.ErrorCode(422)
+
+// DeleteAuthUser is a no-op - Firebase auth has been replaced with internal auth
 func (service *UserService) DeleteAuthUser(ctx context.Context, userID entities.UserID) error {
-	ctx, span, ctxLogger := service.tracer.StartWithLogger(ctx, service.logger)
+	_, span, ctxLogger := service.tracer.StartWithLogger(ctx, service.logger)
 	defer span.End()
 
-	if err := service.authClient.DeleteUser(ctx, userID.String()); err != nil {
-		msg := fmt.Sprintf("could not delete [entities.AuthContext] from firebase with ID [%s]", userID)
-		return service.tracer.WrapErrorSpan(span, stacktrace.Propagate(err, msg))
-	}
-
-	ctxLogger.Info(fmt.Sprintf("deleted [entities.AuthContext] from firebase for user with ID [%s]", userID))
+	ctxLogger.Info(fmt.Sprintf("DeleteAuthUser called for user [%s] - no-op in internal auth mode", userID))
 	return nil
 }

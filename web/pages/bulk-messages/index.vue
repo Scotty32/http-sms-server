@@ -2,12 +2,12 @@
   <v-container
     fluid
     class="px-0 pt-0"
-    :fill-height="$vuetify.breakpoint.lgAndUp"
+    :class="{ 'fill-height': display.lgAndUp.value }"
   >
-    <div class="w-full h-full">
-      <v-app-bar height="60" :dense="$vuetify.breakpoint.mdAndDown">
+    <div class="w-100 h-100">
+      <v-app-bar height="60" :density="display.mdAndDown.value ? 'compact' : 'default'">
         <v-btn icon to="/threads">
-          <v-icon>{{ mdiArrowLeft }}</v-icon>
+          <v-icon :icon="mdiArrowLeft" />
         </v-btn>
         <v-toolbar-title>
           <div class="py-16">Bulk Messages</div>
@@ -16,7 +16,7 @@
           :active="loading"
           :indeterminate="loading"
           absolute
-          bottom
+          location="bottom"
         ></v-progress-linear>
       </v-app-bar>
       <v-container>
@@ -41,9 +41,9 @@
               and upload it here to send your SMS messages to multiple
               recipients at once.
             </p>
-            <v-alert v-if="errorTitle" text prominent type="warning">
-              <h6 class="subtitle-1 font-weight-bold">{{ errorTitle }}</h6>
-              <ul class="body-2">
+            <v-alert v-if="errorTitle" variant="tonal" prominent type="warning">
+              <h6 class="text-subtitle-1 font-weight-bold">{{ errorTitle }}</h6>
+              <ul class="text-body-2">
                 <li
                   v-for="message in errorMessages.get('document')"
                   :key="message"
@@ -56,13 +56,13 @@
               <v-file-input
                 v-model="formFile"
                 label="File"
-                :prepend-icon="null"
+                :prepend-icon="undefined"
                 accept=".csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 :error-messages="errorMessages.get('document')"
                 persistent-placeholder
                 placeholder="Click here to upload your bulk SMS file."
-                :append-icon="mdiMicrosoftExcel"
-                outlined
+                :append-inner-icon="mdiMicrosoftExcel"
+                variant="outlined"
               ></v-file-input>
               <div class="d-flex">
                 <v-btn
@@ -70,15 +70,15 @@
                   type="submit"
                   :loading="loading"
                   :disabled="loading"
-                  large
+                  size="large"
                 >
-                  <v-icon left>{{ mdiSendCheck }}</v-icon>
+                  <v-icon start :icon="mdiSendCheck" />
                   Send Bulk Messages
                 </v-btn>
                 <v-spacer></v-spacer>
                 <v-btn
-                  v-if="$vuetify.breakpoint.mdAndUp"
-                  plain
+                  v-if="display.mdAndUp.value"
+                  variant="plain"
                   color="info"
                   href="mailto:arnold@httpsms.com?subject=I'm having trouble with the bulk messages"
                 >
@@ -93,88 +93,52 @@
   </v-container>
 </template>
 
-<script lang="ts">
-import Vue from 'vue'
-import {
-  mdiArrowLeft,
-  mdiAccountCircle,
-  mdiShieldCheck,
-  mdiDelete,
-  mdiInformation,
-  mdiContentSave,
-  mdiMicrosoftExcel,
-  mdiEye,
-  mdiEyeOff,
-  mdiSendCheck,
-  mdiCallReceived,
-  mdiCallMade,
-  mdiCreditCard,
-  mdiSquareEditOutline,
-} from '@mdi/js'
-import { AxiosError } from 'axios'
-import { ErrorMessages, getErrorMessages } from '~/plugins/errors'
-import capitalize from '~/plugins/capitalize'
-import { ResponsesUnprocessableEntity } from '~/models/api'
+<script setup lang="ts">
+import { ref } from 'vue'
+import { mdiArrowLeft, mdiMicrosoftExcel, mdiSendCheck } from '@mdi/js'
+import { useDisplay } from 'vuetify'
+import type { AxiosError } from 'axios'
+import { ErrorMessages, getErrorMessages } from '~/utils/errors'
+import capitalize from '~/utils/capitalize'
+import type { ResponsesUnprocessableEntity } from '~/models/api'
+import { useAppStore } from '~/stores/app'
 
-export default Vue.extend({
-  name: 'BulkMessagesIndex',
-  middleware: ['auth'],
-  data() {
-    return {
-      mdiEye,
-      mdiEyeOff,
-      mdiMicrosoftExcel,
-      mdiArrowLeft,
-      mdiAccountCircle,
-      mdiShieldCheck,
-      mdiDelete,
-      mdiSendCheck,
-      mdiContentSave,
-      mdiCallReceived,
-      mdiCallMade,
-      mdiCreditCard,
-      mdiInformation,
-      mdiSquareEditOutline,
-      formFile: null,
-      loading: true,
-      errorTitle: '',
-      errorMessages: new ErrorMessages(),
-      dialog: false,
-    }
-  },
-  head() {
-    return {
-      title: 'Send Bulk Messages - httpSMS',
-    }
-  },
-  computed: {},
-  async mounted() {
-    await this.$store.dispatch('loadUser')
-    this.loading = false
-  },
-  methods: {
-    sendBulkMessages() {
-      this.loading = true
-      this.errorMessages = new ErrorMessages()
-      this.errorTitle = ''
+definePageMeta({ middleware: ['auth'] })
+useHead({ title: 'Send Bulk Messages - httpSMS' })
 
-      this.$store
-        .dispatch('sendBulkMessages', this.formFile)
-        .then(() => {
-          setTimeout(() => {
-            this.loading = false
-            this.$router.push({ name: 'threads' })
-          }, 2000)
-        })
-        .catch((error: AxiosError<ResponsesUnprocessableEntity>) => {
-          this.errorTitle = capitalize(
-            error.response?.data?.message ??
-              'Error while sending bulk messages',
-          )
-          this.errorMessages = getErrorMessages(error)
-          this.loading = false
-        })
-    },
-  },
+const store = useAppStore()
+const router = useRouter()
+const display = useDisplay()
+
+const formFile = ref<File[] | null>(null)
+const loading = ref(true)
+const errorTitle = ref('')
+const errorMessages = ref(new ErrorMessages())
+
+onMounted(async () => {
+  await store.loadUser()
+  loading.value = false
 })
+
+function sendBulkMessages() {
+  loading.value = true
+  errorMessages.value = new ErrorMessages()
+  errorTitle.value = ''
+
+  store
+    .sendBulkMessages(formFile.value)
+    .then(() => {
+      setTimeout(() => {
+        loading.value = false
+        router.push({ name: 'threads' })
+      }, 2000)
+    })
+    .catch((error: AxiosError<ResponsesUnprocessableEntity>) => {
+      errorTitle.value = capitalize(
+        error.response?.data?.message ?? 'Error while sending bulk messages',
+      )
+      errorMessages.value = getErrorMessages(error)
+      loading.value = false
+    })
+}
 </script>

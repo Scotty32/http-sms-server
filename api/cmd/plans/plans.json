@@ -1,0 +1,128 @@
+[
+  {
+    "name": "free",
+    "display_name": "Free",
+    "message_limit": 5,
+    "phone_limit": 1,
+    "price_cents": 0,
+    "currency": "USD",
+    "billing_period": "monthly"
+  },
+  {
+    "name": "pro-monthly",
+    "display_name": "Pro (Monthly)",
+    "message_limit": 5000,
+    "phone_limit": 3,
+    "price_cents": 999,
+    "currency": "USD",
+    "billing_period": "monthly"
+  },
+  {
+    "name": "pro-yearly",
+    "display_name": "Pro (Yearly)",
+    "message_limit": 5000,
+    "phone_limit": 3,
+    "price_cents": 9999,
+    "currency": "USD",
+    "billing_period": "yearly"
+  },
+  {
+    "name": "pro-lifetime",
+    "display_name": "Pro (Lifetime)",
+    "message_limit": 5000,
+    "phone_limit": 3,
+    "price_cents": 19999,
+    "currency": "USD",
+    "billing_period": "lifetime"
+  },
+  {
+    "name": "ultra-monthly",
+    "display_name": "Ultra (Monthly)",
+    "message_limit": 10000,
+    "phone_limit": 5,
+    "price_cents": 1999,
+    "currency": "USD",
+    "billing_period": "monthly"
+  },
+  {
+    "name": "ultra-yearly",
+    "display_name": "Ultra (Yearly)",
+    "message_limit": 10000,
+    "phone_limit": 5,
+    "price_cents": 19999,
+    "currency": "USD",
+    "billing_period": "yearly"
+  },
+  {
+    "name": "20k-monthly",
+    "display_name": "20K (Monthly)",
+    "message_limit": 20000,
+    "phone_limit": 10,
+    "price_cents": 3999,
+    "currency": "USD",
+    "billing_period": "monthly"
+  },
+  {
+    "name": "20k-yearly",
+    "display_name": "20K (Yearly)",
+    "message_limit": 20000,
+    "phone_limit": 10,
+    "price_cents": 39999,
+    "currency": "USD",
+    "billing_period": "yearly"
+  },
+  {
+    "name": "50k-monthly",
+    "display_name": "50K (Monthly)",
+    "message_limit": 50000,
+    "phone_limit": 20,
+    "price_cents": 7999,
+    "currency": "USD",
+    "billing_period": "monthly"
+  },
+  {
+    "name": "50k-yearly",
+    "display_name": "50K (Yearly)",
+    "message_limit": 50000,
+    "phone_limit": 20,
+    "price_cents": 79999,
+    "currency": "USD",
+    "billing_period": "yearly"
+  },
+  {
+    "name": "100k-monthly",
+    "display_name": "100K (Monthly)",
+    "message_limit": 100000,
+    "phone_limit": 40,
+    "price_cents": 14999,
+    "currency": "USD",
+    "billing_period": "monthly"
+  },
+  {
+    "name": "100k-yearly",
+    "display_name": "100K (Yearly)",
+    "message_limit": 100000,
+    "phone_limit": 40,
+    "price_cents": 149999,
+    "currency": "USD",
+    "billing_period": "yearly"
+  },
+  {
+    "name": "200k-monthly",
+    "display_name": "200K (Monthly)",
+    "message_limit": 200000,
+    "phone_limit": 80,
+    "price_cents": 27999,
+    "currency": "USD",
+    "billing_period": "monthly"
+  },
+  {
+    "name": "200k-yearly",
+    "display_name": "200K (Yearly)",
+    "message_limit": 200000,
+    "phone_limit": 80,
+    "price_cents": 279999,
+    "currency": "USD",
+    "billing_period": "yearly"
+  }
+]

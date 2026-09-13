@@ -18,6 +18,7 @@ type MessagePhoneDeliveredPayload struct {
 	Contact   string          `json:"contact"`
 	RequestID *string         `json:"request_id"`
 	UserID    entities.UserID `json:"user_id"`
+	AppID     *uuid.UUID      `json:"app_id,omitempty"`
 	Encrypted bool            `json:"encrypted"`
 	Timestamp time.Time       `json:"timestamp"`
 	Content   string          `json:"content"`

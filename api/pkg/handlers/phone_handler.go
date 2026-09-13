@@ -128,6 +128,10 @@ func (h *PhoneHandler) Upsert(c *fiber.Ctx) error {
 	}
 
 	phone, err := h.service.Upsert(ctx, request.ToUpsertParams(h.userFromContext(c), c.OriginalURL()))
+	if stacktrace.GetCode(err) == services.ErrCodePhoneLimitExceeded {
+		msg := "You have reached the phone number limit on your plan. Upgrade to add more phone numbers on https://httpsms.com/billing"
+		return h.responsePaymentRequired(c, msg)
+	}
 	if err != nil {
 		msg := fmt.Sprintf("cannot update phones with params [%+#v]", request)
 		ctxLogger.Error(stacktrace.Propagate(err, msg))
@@ -208,6 +212,10 @@ func (h *PhoneHandler) UpsertFCMToken(c *fiber.Ctx) error {
 	}
 
 	phone, err := h.service.UpsertFCMToken(ctx, request.ToPhoneFCMTokenParams(h.userFromContext(c), c.OriginalURL()))
+	if stacktrace.GetCode(err) == services.ErrCodePhoneLimitExceeded {
+		msg := "You have reached the phone number limit on your plan. Upgrade to add more phone numbers on https://httpsms.com/billing"
+		return h.responsePaymentRequired(c, msg)
+	}
 	if err != nil {
 		msg := fmt.Sprintf("cannot delete phones with params [%+#v]", request)
 		ctxLogger.Error(stacktrace.Propagate(err, msg))

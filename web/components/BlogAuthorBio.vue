@@ -1,36 +1,27 @@
 <template>
   <div class="d-flex mb-6 mt-8">
     <v-avatar class="mb-n2">
-      <v-img :src="require('@/assets/img/arnold.png')"></v-img>
+      <v-img :src="arnoldImg"></v-img>
     </v-avatar>
     <div class="ml-2">
-      <p class="subtitle-1 mb-n1">Acho Arnold</p>
+      <p class="text-subtitle-1 mb-n1">Acho Arnold</p>
       <a
-        class="mb-n4 text-decoration-none text--primary"
+        class="text-decoration-none text-high-emphasis"
         href="https://twitter.com/acho_arnold"
       >
-        <v-icon color="#1DA1F2">{{ mdiTwitter }}</v-icon>
+        <v-icon color="#1DA1F2" :icon="mdiTwitter" />
       </a>
       <a
-        class="ml-2 text-decoration-none text--primary"
+        class="ml-2 text-decoration-none text-high-emphasis"
         href="https://github.com/AchoArnold"
       >
-        <v-icon color="#FFFFFF">{{ mdiGithub }}</v-icon>
+        <v-icon color="#FFFFFF" :icon="mdiGithub" />
       </a>
     </div>
   </div>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
 import { mdiTwitter, mdiGithub } from '@mdi/js'
-
-export default {
-  name: 'BlogAuthorBio',
-  data() {
-    return {
-      mdiTwitter,
-      mdiGithub,
-    }
-  },
-}
+import arnoldImg from '@/assets/img/arnold.png'
 </script>

@@ -2,12 +2,10 @@
   <v-btn
     :block="block"
     :type="type"
-    :small="small"
-    :large="large"
-    :x-large="xLarge"
+    :size="btnSize"
     :color="color"
-    :text="text"
-    :tile="tile"
+    :variant="text ? 'text' : undefined"
+    :rounded="tile ? '0' : undefined"
     exact
     :disabled="isLoading"
     @click.prevent="onClick"
@@ -19,38 +17,59 @@
       class="mr-2"
       indeterminate
     ></v-progress-circular>
-    <v-icon v-if="icon && !isLoading" left>{{ icon }}</v-icon>
+    <v-icon v-if="icon && !isLoading" start :icon="icon" />
     <slot></slot>
   </v-btn>
 </template>
 
-<script lang="ts">
-import { Component, PropSync, Prop, Vue, Watch } from 'vue-property-decorator'
-@Component
-export default class SocialButtons extends Vue {
-  @Prop({ required: false, type: String, default: 'submit' }) type!: string
-  @Prop({ required: false, type: Boolean, default: false }) block!: boolean
-  @Prop({ required: false, type: Boolean, default: false }) large!: boolean
-  @Prop({ required: false, type: Boolean, default: false }) xLarge!: boolean
-  @Prop({ required: false, type: Boolean, default: false }) tile!: boolean
-  @Prop({ required: false, type: Boolean, default: false }) text!: boolean
-  @Prop({ required: false, type: Boolean, default: false }) small!: boolean
-  @Prop({ required: false, type: String, default: 'primary' }) color!: string
-  @Prop({ required: false, type: String, default: null }) icon!: string | null
-  @PropSync('loading', { required: true, type: Boolean }) isLoading!: boolean
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue'
 
-  isClicked = false
+const props = withDefaults(defineProps<{
+  type?: string
+  block?: boolean
+  large?: boolean
+  xLarge?: boolean
+  tile?: boolean
+  text?: boolean
+  small?: boolean
+  color?: string
+  icon?: string | null
+}>(), {
+  type: 'submit',
+  block: false,
+  large: false,
+  xLarge: false,
+  tile: false,
+  text: false,
+  small: false,
+  color: 'primary',
+  icon: null,
+})
 
-  @Watch('loading')
-  onChildChanged(submitting: boolean) {
-    if (!submitting && this.isClicked) {
-      this.isClicked = false
-    }
+const isLoading = defineModel<boolean>('loading', { required: true })
+
+const isClicked = ref(false)
+
+const btnSize = computed(() => {
+  if (props.xLarge) return 'x-large'
+  if (props.large) return 'large'
+  if (props.small) return 'small'
+  return 'default'
+})
+
+const emit = defineEmits<{
+  click: []
+}>()
+
+watch(isLoading, (submitting) => {
+  if (!submitting && isClicked.value) {
+    isClicked.value = false
   }
+})
 
-  onClick() {
-    this.isClicked = true
-    this.$emit('click')
-  }
+function onClick() {
+  isClicked.value = true
+  emit('click')
 }
 </script>

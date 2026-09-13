@@ -31,6 +31,7 @@ func PhoneAPIKeyAuth(logger telemetry.Logger, tracer telemetry.Tracer, repositor
 		}
 
 		c.Locals(ContextKeyAuthUserID, authUser)
+		c.Locals(ContextKeyAuthSource, AuthSourcePhoneKey)
 		return c.Next()
 	}
 }

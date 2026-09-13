@@ -31,6 +31,7 @@ func BearerAPIKeyAuth(logger telemetry.Logger, tracer telemetry.Tracer, userRepo
 		}
 
 		c.Locals(ContextKeyAuthUserID, authUser)
+		c.Locals(ContextKeyAuthSource, AuthSourceAPIKey)
 		return c.Next()
 	}
 }

@@ -2,6 +2,7 @@
 *main.exe
 tmp
 $path
+logs/
 
 .env*
 .flaskenv*

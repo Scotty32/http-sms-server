@@ -1,8 +1,7 @@
-version: "3.8"
-
 services:
   postgres:
-    image: postgres:alpine
+    container_name: httpsms-postgres
+    image: postgres:16
     environment:
       POSTGRES_DB: httpsms
       POSTGRES_PASSWORD: dbpassword
@@ -13,13 +12,14 @@ services:
       - "5435:5432"
     restart: on-failure
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready", "-U", "dbusername", "-d", "httpsms"]
+      test: ["CMD-SHELL", "pg_isready -U dbusername -d httpsms"]
       interval: 30s
       timeout: 60s
       retries: 5
       start_period: 5s
 
   redis:
+    container_name: httpsms-redis
     image: redis:latest
     command: redis-server
     volumes:
@@ -27,8 +27,15 @@ services:
     ports:
       - "6379:6379"
     restart: on-failure
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
   api:
+    container_name: httpsms-api
     build:
       context: ./api
     ports:
@@ -37,11 +44,15 @@ services:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
     env_file:
       - ./api/.env
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
 
   web:
+    container_name: httpsms-web
     build:
       context: ./web
     ports:
@@ -49,6 +60,9 @@ services:
     depends_on:
       api:
         condition: service_started
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
 
 volumes:
   redis:

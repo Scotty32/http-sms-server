@@ -1,9 +1,12 @@
-import { Context, Middleware } from '@nuxt/types'
-
-const guestMiddleware: Middleware = (context: Context) => {
-  if (context.store.getters.getAuthUser !== null) {
-    context.redirect('/threads')
+export default defineNuxtRouteMiddleware(async () => {
+  const store = useAppStore()
+  if (store.getAuthUser !== null) {
+    return navigateTo('/threads')
   }
-}
-
-export default guestMiddleware
+  try {
+    await store.loadUser()
+    return navigateTo('/threads')
+  } catch {
+    // not authenticated — stay on login page
+  }
+})

@@ -25,6 +25,7 @@ type BillingService struct {
 	mailer                 emails.Mailer
 	userRepository         repositories.UserRepository
 	billingUsageRepository repositories.BillingUsageRepository
+	planRepository         repositories.PlanRepository
 }
 
 // NewBillingService creates a new BillingService
@@ -36,6 +37,7 @@ func NewBillingService(
 	emailFactory emails.UserEmailFactory,
 	usageRepository repositories.BillingUsageRepository,
 	userRepository repositories.UserRepository,
+	planRepository repositories.PlanRepository,
 ) (s *BillingService) {
 	return &BillingService{
 		logger:                 logger.WithService(fmt.Sprintf("%T", s)),
@@ -45,7 +47,19 @@ func NewBillingService(
 		mailer:                 mailer,
 		userRepository:         userRepository,
 		billingUsageRepository: usageRepository,
+		planRepository:         planRepository,
 	}
+}
+
+// messageLimit resolves the message limit for a user's plan - preferring the DB-backed
+// entities.Plan catalog (seeded via the plans CLI command) and falling back to the
+// hardcoded SubscriptionName.Limit() if no matching plan row exists yet.
+func (service *BillingService) messageLimit(ctx context.Context, user *entities.User) uint {
+	plan, err := service.planRepository.LoadByName(ctx, string(user.SubscriptionName))
+	if err != nil {
+		return user.SubscriptionName.Limit()
+	}
+	return uint(plan.MessageLimit)
 }
 
 // IsEntitledWithCount checks if a user can send or receive and SMS message
@@ -67,7 +81,7 @@ func (service *BillingService) IsEntitledWithCount(ctx context.Context, userID e
 		return nil
 	}
 
-	if !usage.IsEntitled(count, user.SubscriptionName.Limit()) {
+	if !usage.IsEntitled(count, service.messageLimit(ctx, user)) {
 		return service.handleLimitExceeded(ctx, user)
 	}
 
@@ -87,7 +101,7 @@ func (service *BillingService) handleLimitExceeded(ctx context.Context, user *en
 
 	message := fmt.Sprintf(
 		"You have exceeded your limit of [%d] messages on your [%s] plan. Upgrade to send more messages on https://httpsms.com/billing",
-		user.SubscriptionName.Limit(),
+		service.messageLimit(ctx, user),
 		user.SubscriptionName,
 	)
 	return &message

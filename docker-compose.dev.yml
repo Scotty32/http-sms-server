@@ -1,0 +1,126 @@
+services:
+  postgres:
+    container_name: httpsms-postgres
+    image: postgres:16
+    environment:
+      POSTGRES_DB: httpsms
+      POSTGRES_PASSWORD: dbpassword
+      POSTGRES_USER: dbusername
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"
+    restart: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dbusername -d httpsms"]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 5s
+
+  redis:
+    container_name: httpsms-redis
+    image: redis:latest
+    command: redis-server
+    volumes:
+      - redis:/var/lib/redis
+    ports:
+      - "6379:6379"
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  api:
+    container_name: httpsms-api
+    build:
+      context: ./api
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount source code for live reload with air
+      - ./api:/app
+      # Named volume for Go module cache (avoids re-downloading on each start)
+      - go-modules:/go/pkg/mod
+      # Named volume for build cache
+      - go-build-cache:/root/.cache/go-build
+      # Persistent log file, directly readable/editable from the host filesystem
+      - ./api/logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - ./api/.env
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    dns_opt:
+      # NOT use-vc: forces DNS over TCP, which Go's native resolver (unlike curl/glibc)
+      # hangs on against Docker's embedded DNS (127.0.0.11) — reproduced 2026-09-11,
+      # every outbound Go HTTP call with a hostname (e.g. the webhook url test) stalled
+      # for the full request timeout and failed with "context deadline exceeded", while
+      # the identical request by IP or by curl returned instantly. Root-caused by
+      # bypassing DNS via a raw IP and getting an immediate 200.
+      - attempts:5
+      - timeout:2
+    extra_hosts:
+      # host.docker.internal isn't reliably resolvable via DNS when a custom `dns:` is
+      # set above (public resolvers SERVFAIL on this Docker-internal name) — pin it in
+      # /etc/hosts instead so webhook URLs pointing at the Windows host still work.
+      - "host.docker.internal:host-gateway"
+    networks:
+      # default: talks to postgres/redis in this compose file
+      - default
+      # omci-net: reach omci-listing's containers (e.g. omci-nginx) by container name
+      # for webhook testing, instead of routing back out through host.docker.internal
+      - omci-net
+
+  web:
+    container_name: httpsms-web
+    build:
+      context: ./web
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      # Source code with HMR
+      - ./web:/app
+      # Isolated node_modules (not overwritten by host mount)
+      - web-node-modules:/app/node_modules
+      # pnpm store cache
+      - pnpm-store:/root/.local/share/pnpm/store
+    depends_on:
+      - api
+    environment:
+      - NUXT_TELEMETRY_DISABLED=1
+    env_file:
+      - ./web/.env.docker
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    dns_opt:
+      # see api's dns_opt comment above - use-vc caused Go's resolver to hang
+      - attempts:5
+      - timeout:2
+
+networks:
+  default:
+  # Created by omci-listing's docker-compose (external: true there too) — must already
+  # exist before `docker compose up` here, e.g. by starting the omci-listing stack first,
+  # or `docker network create omci-net`.
+  omci-net:
+    external: true
+
+volumes:
+  redis:
+  postgres:
+  go-modules:
+  go-build-cache:
+  web-node-modules:
+  pnpm-store:

@@ -43,5 +43,10 @@ func main() {
 	}
 
 	container := di.NewContainer(os.Getenv("GCP_PROJECT_ID"), Version)
+
+	if os.Getenv("EVENTS_QUEUE_TYPE") == "redis" {
+		go container.StartRedisPushQueueWorker()
+	}
+
 	container.Logger().Info(container.App().Listen(fmt.Sprintf("%s:%s", os.Getenv("APP_HOST"), os.Getenv("APP_PORT"))).Error())
 }

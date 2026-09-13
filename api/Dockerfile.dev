@@ -1,0 +1,19 @@
+FROM golang:1.25-bookworm
+
+WORKDIR /app
+
+# Build tools (gcc via build-essential; sqlite driver uses cgo)
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install air (hot-reload) - pinned to a version compatible with the Go toolchain above
+RUN go install github.com/air-verse/air@v1.63.0
+
+# Pre-download modules using the module files only (cached layer)
+# The actual source is mounted as a volume at runtime.
+COPY go.mod go.sum ./
+RUN go mod download
+
+EXPOSE 8000
+
+CMD ["air", "-c", ".air.docker.toml"]

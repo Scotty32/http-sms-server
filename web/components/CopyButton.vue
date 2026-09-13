@@ -2,45 +2,52 @@
   <v-btn
     :disabled="disabled"
     :color="color"
-    :small="$vuetify.breakpoint.smAndDown"
+    :size="display.smAndDown.value ? 'small' : 'default'"
     :block="block"
     :large="large"
     @click="copy"
   >
-    <v-icon left>{{ mdiContentCopy }}</v-icon>
+    <v-icon start :icon="mdiContentCopy" />
     {{ copyText }}
   </v-btn>
 </template>
 
-<script lang="ts">
-import { Vue, Component, Prop } from 'vue-property-decorator'
+<script setup lang="ts">
+import { ref } from 'vue'
 import { mdiContentCopy } from '@mdi/js'
-import { NotificationRequest } from '~/store'
-@Component
-export default class CopyButton extends Vue {
-  @Prop({ required: true, type: String }) value!: string
-  @Prop({ required: false, type: String, default: 'default' }) color!: string
-  @Prop({ required: false, type: Boolean, default: false }) block!: boolean
-  @Prop({ required: false, type: Boolean, default: false }) large!: boolean
-  @Prop({ required: false, type: String, default: 'Copy' }) copyText!: string
-  @Prop({ required: false, type: String, default: 'Copied' })
-  notificationText!: string
+import { useDisplay } from 'vuetify'
+import { useAppStore } from '~/stores/app'
 
-  disabled = false
-  mdiContentCopy = mdiContentCopy
+const props = withDefaults(defineProps<{
+  value: string
+  color?: string
+  block?: boolean
+  large?: boolean
+  copyText?: string
+  notificationText?: string
+}>(), {
+  color: 'default',
+  block: false,
+  large: false,
+  copyText: 'Copy',
+  notificationText: 'Copied',
+})
 
-  async copy() {
-    this.disabled = true
-    await navigator.clipboard.writeText(this.value)
+const store = useAppStore()
+const display = useDisplay()
+const disabled = ref(false)
 
-    await this.$store.dispatch('addNotification', {
-      message: this.notificationText,
-      type: 'success',
-    } as NotificationRequest)
+async function copy() {
+  disabled.value = true
+  await navigator.clipboard.writeText(props.value)
 
-    setTimeout(() => {
-      this.disabled = false
-    }, 5000)
-  }
+  store.addNotification({
+    message: props.notificationText,
+    type: 'success',
+  })
+
+  setTimeout(() => {
+    disabled.value = false
+  }, 5000)
 }
 </script>

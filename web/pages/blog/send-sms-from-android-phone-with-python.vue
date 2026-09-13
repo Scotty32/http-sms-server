@@ -6,7 +6,7 @@
           style="border-radius: 4px"
           alt="blog post header image"
           :src="
-            require('@/static/img/blog/send-sms-from-android-phone-with-python/header.png')
+            '/img/blog/send-sms-from-android-phone-with-python/header.png'
           "
         ></v-img>
         <h1
@@ -67,7 +67,7 @@
             style="border-radius: 4px"
             alt="httpsms.com settings page"
             :src="
-              require('@/static/img/blog/forward-incoming-sms-from-phone-to-webhook/settings.png')
+              '/img/blog/forward-incoming-sms-from-phone-to-webhook/settings.png'
             "
           ></v-img>
         </vue-glow>
@@ -95,7 +95,7 @@
           height="800"
           contain
           :src="
-            require('@/static/img/blog/forward-incoming-sms-from-phone-to-webhook/android-app.png')
+            '/img/blog/forward-incoming-sms-from-phone-to-webhook/android-app.png'
           "
         ></v-img>
         <h3 class="text-h4 mt-12">Step 3: Writing the code</h3>
@@ -148,7 +148,7 @@ print(json.dumps(response.json(), indent=4))
           height="800"
           contain
           :src="
-            require('@/static/img/blog/send-sms-from-android-phone-with-python/sms-sent.png')
+            '/img/blog/send-sms-from-android-phone-with-python/sms-sent.png'
           "
         ></v-img>
         <h3 class="text-h4 mt-12">Conclusion</h3>
@@ -181,6 +181,7 @@ print(json.dumps(response.json(), indent=4))
 </template>
 
 <script lang="ts">
+import authorImage from '@/assets/img/arnold.png'
 import { mdiTwitter } from '@mdi/js'
 export default {
   name: 'SendSmsFromAndroidPhoneWithPython',
@@ -188,7 +189,7 @@ export default {
   data() {
     return {
       mdiTwitter,
-      authorImage: require('@/assets/img/arnold.png'),
+      authorImage,
       authorName: 'Acho Arnold',
       postDate: 'June 03, 2023',
       readTime: '6 min read',

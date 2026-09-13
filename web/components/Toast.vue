@@ -1,24 +1,27 @@
 <template>
   <v-snackbar
-    v-model="notificationActive"
-    text
-    :color="notification.type"
-    :timeout="notification.timeout"
+    :model-value="store.getNotification.active"
+    :color="store.getNotification.type"
+    :timeout="store.getNotification.timeout"
+    @update:model-value="store.disableNotification()"
   >
-    <v-icon v-if="notification.type === 'success'" :color="notification.type">
-      {{ mdiCheck }}
-    </v-icon>
-    <v-icon v-if="notification.type === 'info'" :color="notification.type">
-      {{ mdiInformation }}
-    </v-icon>
-    {{ notification.message }}
-    <template #action="{ attrs }">
+    <v-icon
+      v-if="store.getNotification.type === 'success'"
+      :icon="mdiCheck"
+      :color="store.getNotification.type"
+    />
+    <v-icon
+      v-if="store.getNotification.type === 'info'"
+      :icon="mdiInformation"
+      :color="store.getNotification.type"
+    />
+    {{ store.getNotification.message }}
+    <template #actions>
       <v-btn
-        v-if="$vuetify.breakpoint.lgAndUp"
-        :color="notification.type"
-        text
-        v-bind="attrs"
-        @click="disableNotification"
+        v-if="display.lgAndUp.value"
+        :color="store.getNotification.type"
+        variant="text"
+        @click="store.disableNotification()"
       >
         <span class="font-weight-bold">Close</span>
       </v-btn>
@@ -26,30 +29,10 @@
   </v-snackbar>
 </template>
 
-<script lang="ts">
-import { Vue, Component } from 'vue-property-decorator'
+<script setup lang="ts">
+import { useDisplay } from 'vuetify'
 import { mdiCheck, mdiInformation } from '@mdi/js'
-import { Notification } from '~/store'
 
-@Component
-export default class Toast extends Vue {
-  mdiCheck = mdiCheck
-  mdiInformation = mdiInformation
-
-  get notification(): Notification {
-    return this.$store.getters.getNotification
-  }
-
-  get notificationActive(): boolean {
-    return this.$store.getters.getNotification.active
-  }
-
-  set notificationActive(state: boolean) {
-    this.disableNotification()
-  }
-
-  disableNotification() {
-    this.$store.dispatch('disableNotification')
-  }
-}
+const store = useAppStore()
+const display = useDisplay()
 </script>

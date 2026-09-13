@@ -4,26 +4,26 @@
       <v-container>
         <v-row>
           <v-col class="w-full d-flex">
-            <nuxt-link
+            <NuxtLink
               to="/"
               class="text-decoration-none d-flex"
-              :class="{ 'mt-5': $vuetify.breakpoint.mdAndUp }"
+              :class="{ 'mt-5': display.mdAndUp.value }"
             >
               <v-avatar tile size="33" class="mt-1">
-                <v-img contain :src="require('@/assets/img/logo.svg')"></v-img>
+                <v-img contain src="~/assets/img/logo.svg"></v-img>
               </v-avatar>
               <h3
-                v-if="$vuetify.breakpoint.lgAndUp"
+                v-if="display.lgAndUp.value"
                 class="text-h4 ml-1 text--primary"
               >
                 httpSMS
               </h3>
-            </nuxt-link>
+            </NuxtLink>
             <v-spacer></v-spacer>
             <v-btn
-              v-show="$vuetify.breakpoint.lgAndUp"
-              large
-              text
+              v-show="display.lgAndUp.value"
+              size="large"
+              variant="text"
               color="primary"
               class="my-5 mr-2"
               @click="goToPricing"
@@ -31,9 +31,9 @@
               Pricing
             </v-btn>
             <v-btn
-              v-show="$vuetify.breakpoint.lgAndUp"
-              large
-              text
+              v-show="display.lgAndUp.value"
+              size="large"
+              variant="text"
               color="primary"
               class="my-5 mr-2"
               :to="{ name: 'blog' }"
@@ -42,11 +42,11 @@
             </v-btn>
             <v-btn
               v-show="
-                $vuetify.breakpoint.lgAndUp &&
-                $store.getters.getAuthUser === null
+                display.lgAndUp.value &&
+                store.getAuthUser === null
               "
-              large
-              text
+              size="large"
+              variant="text"
               color="primary"
               class="my-5 mr-2"
               :to="{ name: 'login' }"
@@ -54,28 +54,28 @@
               Login
             </v-btn>
             <v-btn
-              v-show="$store.getters.getAuthUser === null"
+              v-show="store.getAuthUser === null"
               exact-path
               color="primary"
               :class="{
-                'mt-5': $vuetify.breakpoint.mdAndUp,
-                'mt-1': !$vuetify.breakpoint.mdAndUp,
+                'mt-5': display.mdAndUp.value,
+                'mt-1': !display.mdAndUp.value,
               }"
-              :large="$vuetify.breakpoint.lgAndUp"
+              :size="display.lgAndUp.value ? 'large' : 'default'"
               :to="{ name: 'login' }"
             >
               Get Started
-              <span v-show="$vuetify.breakpoint.lgAndUp">&nbsp;For Free</span>
+              <span v-show="display.lgAndUp.value">&nbsp;For Free</span>
             </v-btn>
             <v-btn
-              v-show="$store.getters.getAuthUser !== null"
+              v-show="store.getAuthUser !== null"
               exact-path
               color="primary"
               :class="{
-                'mt-5': $vuetify.breakpoint.mdAndUp,
-                'mt-1': !$vuetify.breakpoint.mdAndUp,
+                'mt-5': display.mdAndUp.value,
+                'mt-1': !display.mdAndUp.value,
               }"
-              :large="$vuetify.breakpoint.lgAndUp"
+              :size="display.lgAndUp.value ? 'large' : 'default'"
               :to="{ name: 'threads' }"
             >
               Dashboard
@@ -85,19 +85,19 @@
       </v-container>
     </v-app-bar>
     <v-main>
-      <toast></toast>
-      <Nuxt />
+      <Toast />
+      <NuxtPage />
     </v-main>
     <v-footer class="pt-4">
       <v-container>
         <v-row>
           <v-col cols="12" md="3">
-            <nuxt-link to="/" class="text-decoration-none d-flex">
+            <NuxtLink to="/" class="text-decoration-none d-flex">
               <v-avatar tile size="33" class="mt-1">
-                <v-img contain :src="require('@/assets/img/logo.svg')"></v-img>
+                <v-img contain src="~/assets/img/logo.svg"></v-img>
               </v-avatar>
               <h3 class="text-h4 ml-1 text--primary">httpSMS</h3>
-            </nuxt-link>
+            </NuxtLink>
             <div class="subtitle-2 mb-4 text--secondary">
               Made With <v-icon color="#cf1112">{{ mdiHeart }}</v-icon> in
               Tallinn
@@ -112,9 +112,9 @@
                 <v-icon>{{ mdiTwitter }}</v-icon>
               </v-btn>
               <v-btn
-                :href="$store.getters.getAppData.githubUrl"
+                :href="store.getAppData.githubUrl"
                 icon
-                large
+                size="large"
                 color="#ffffff"
               >
                 <v-icon>{{ mdiGithub }}</v-icon>
@@ -122,14 +122,14 @@
               <v-btn
                 href="https://discord.gg/kGk8HVqeEZ"
                 icon
-                large
+                size="large"
                 color="#5865f2"
               >
                 <v-img
                   contain
                   height="24"
                   width="24"
-                  :src="require('assets/img/discord-logo-blue.svg')"
+                  src="~/assets/img/discord-logo-blue.svg"
                 ></v-img>
               </v-btn>
             </p>
@@ -148,51 +148,51 @@
             <h2 class="text-h6 mb-2">Resources</h2>
             <ul style="list-style: none" class="pa-0">
               <li class="mb-2">
-                <v-hover v-slot="{ hover }">
+                <v-hover v-slot="{ isHovering }">
                   <a
                     class="text--primary text-decoration-none"
-                    :class="{ 'text-decoration-underline': hover }"
+                    :class="{ 'text-decoration-underline': isHovering }"
                     @click.stop="goToPricing"
                   >
                     Pricing
-                    <v-icon small>{{ mdiCreditCardOutline }}</v-icon>
+                    <v-icon size="small">{{ mdiCreditCardOutline }}</v-icon>
                   </a>
                 </v-hover>
               </li>
               <li class="mb-2">
-                <v-hover v-slot="{ hover }">
+                <v-hover v-slot="{ isHovering }">
                   <a
                     href="https://httpsms.lemonsqueezy.com/affiliates"
                     class="text--primary text-decoration-none"
-                    :class="{ 'text-decoration-underline': hover }"
+                    :class="{ 'text-decoration-underline': isHovering }"
                   >
                     Affiliates
-                    <v-icon color="warning" small>{{ mdiShieldStar }}</v-icon>
+                    <v-icon color="warning" size="small">{{ mdiShieldStar }}</v-icon>
                   </a>
                 </v-hover>
               </li>
               <li class="mb-2">
-                <v-hover v-slot="{ hover }">
+                <v-hover v-slot="{ isHovering }">
                   <a
                     href="https://status.httpsms.com"
                     class="text--primary text-decoration-none"
-                    :class="{ 'text-decoration-underline': hover }"
+                    :class="{ 'text-decoration-underline': isHovering }"
                   >
                     Site status
-                    <v-icon color="success" x-small>{{ mdiCircle }}</v-icon>
+                    <v-icon color="success" size="x-small">{{ mdiCircle }}</v-icon>
                   </a>
                 </v-hover>
               </li>
               <li class="mb-2">
-                <v-hover v-slot="{ hover }">
-                  <nuxt-link
+                <v-hover v-slot="{ isHovering }">
+                  <NuxtLink
                     class="text--primary text-decoration-none"
-                    :class="{ 'text-decoration-underline': hover }"
+                    :class="{ 'text-decoration-underline': isHovering }"
                     to="/blog"
                   >
                     Blog
-                    <v-icon small>{{ mdiPost }}</v-icon>
-                  </nuxt-link>
+                    <v-icon size="small">{{ mdiPost }}</v-icon>
+                  </NuxtLink>
                 </v-hover>
               </li>
             </ul>
@@ -201,50 +201,50 @@
             <h2 class="text-h6 mb-2">Developers</h2>
             <ul style="list-style: none" class="pa-0">
               <li class="mb-2">
-                <v-hover v-slot="{ hover }">
+                <v-hover v-slot="{ isHovering }">
                   <a
-                    :href="$store.getters.getAppData.documentationUrl"
+                    :href="store.getAppData.documentationUrl"
                     class="text--primary text-decoration-none"
-                    :class="{ 'text-decoration-underline': hover }"
+                    :class="{ 'text-decoration-underline': isHovering }"
                   >
                     Documentation
-                    <v-icon small>{{ mdiBookOpenVariant }}</v-icon>
+                    <v-icon size="small">{{ mdiBookOpenVariant }}</v-icon>
                   </a>
                 </v-hover>
               </li>
               <li class="mb-2">
-                <v-hover v-slot="{ hover }">
+                <v-hover v-slot="{ isHovering }">
                   <a
-                    :href="$store.getters.getAppData.githubUrl"
+                    :href="store.getAppData.githubUrl"
                     class="text--primary text-decoration-none"
-                    :class="{ 'text-decoration-underline': hover }"
+                    :class="{ 'text-decoration-underline': isHovering }"
                   >
                     Github
-                    <v-icon small>{{ mdiGithub }}</v-icon>
+                    <v-icon size="small">{{ mdiGithub }}</v-icon>
                   </a>
                 </v-hover>
               </li>
               <li class="mb-2">
-                <v-hover v-slot="{ hover }">
+                <v-hover v-slot="{ isHovering }">
                   <a
                     href="https://sandbox.httpsms.com"
                     class="text--primary text-decoration-none"
-                    :class="{ 'text-decoration-underline': hover }"
+                    :class="{ 'text-decoration-underline': isHovering }"
                   >
                     Sandbox
-                    <v-icon small color="pink">{{ mdiCreation }}</v-icon>
+                    <v-icon size="small" color="pink">{{ mdiCreation }}</v-icon>
                   </a>
                 </v-hover>
               </li>
               <li class="mb-2">
-                <v-hover v-slot="{ hover }">
+                <v-hover v-slot="{ isHovering }">
                   <a
                     href="https://httpsms.featurebase.app"
                     class="text--primary text-decoration-none"
-                    :class="{ 'text-decoration-underline': hover }"
+                    :class="{ 'text-decoration-underline': isHovering }"
                   >
                     Request Feature
-                    <v-icon small color="yellow">{{ mdiLightbulbOn50 }}</v-icon>
+                    <v-icon size="small" color="yellow">{{ mdiLightbulbOn50 }}</v-icon>
                   </a>
                 </v-hover>
               </li>
@@ -254,38 +254,38 @@
             <h2 class="text-h6 mb-2">Legal</h2>
             <ul style="list-style: none" class="pa-0">
               <li class="mb-2">
-                <v-hover v-slot="{ hover }">
-                  <nuxt-link
+                <v-hover v-slot="{ isHovering }">
+                  <NuxtLink
                     class="text--primary text-decoration-none"
-                    :class="{ 'text-decoration-underline': hover }"
+                    :class="{ 'text-decoration-underline': isHovering }"
                     to="/terms-and-conditions"
                   >
                     Terms & Conditions
-                    <v-icon small>{{ mdiScaleBalance }}</v-icon>
-                  </nuxt-link>
+                    <v-icon size="small">{{ mdiScaleBalance }}</v-icon>
+                  </NuxtLink>
                 </v-hover>
               </li>
               <li>
-                <v-hover v-slot="{ hover }">
-                  <nuxt-link
+                <v-hover v-slot="{ isHovering }">
+                  <NuxtLink
                     class="text--primary text-decoration-none"
-                    :class="{ 'text-decoration-underline': hover }"
+                    :class="{ 'text-decoration-underline': isHovering }"
                     to="/privacy-policy"
                   >
                     Privacy Policy
-                    <v-icon small>{{ mdiEyeOffOutline }}</v-icon>
-                  </nuxt-link>
+                    <v-icon size="small">{{ mdiEyeOffOutline }}</v-icon>
+                  </NuxtLink>
                 </v-hover>
               </li>
               <li class="mt-2">
-                <v-hover v-slot="{ hover }">
+                <v-hover v-slot="{ isHovering }">
                   <a
                     class="text--primary text-decoration-none"
-                    :class="{ 'text-decoration-underline': hover }"
+                    :class="{ 'text-decoration-underline': isHovering }"
                     href="mailto:support@httpsms.com"
                   >
                     Contact Support
-                    <v-icon small>{{ mdiEmailOutline }}</v-icon>
+                    <v-icon size="small">{{ mdiEmailOutline }}</v-icon>
                   </a>
                 </v-hover>
               </li>
@@ -297,8 +297,7 @@
   </v-app>
 </template>
 
-<script lang="ts">
-import Vue from 'vue'
+<script setup lang="ts">
 import {
   mdiLoginVariant,
   mdiArrowRight,
@@ -317,39 +316,20 @@ import {
   mdiEmailOutline,
   mdiBookOpenVariant,
 } from '@mdi/js'
+import { useDisplay } from 'vuetify'
 
-export default Vue.extend({
-  name: 'WebsiteLayout',
-  data() {
-    return {
-      mdiLoginVariant,
-      mdiArrowRight,
-      mdiGithub,
-      mdiTwitter,
-      mdiHeart,
-      mdiCreation,
-      mdiScaleBalance,
-      mdiEyeOffOutline,
-      mdiCreditCardOutline,
-      mdiEmailOutline,
-      mdiPost,
-      mdiDomain,
-      mdiCircle,
-      mdiShieldStar,
-      mdiLightbulbOn50,
-      mdiBookOpenVariant,
-    }
-  },
-  methods: {
-    goToPricing() {
-      if (this.$route.name === 'index') {
-        this.$vuetify.goTo('#pricing')
-      } else {
-        this.$router.push('/#pricing')
-      }
-    },
-  },
-})
+const store = useAppStore()
+const route = useRoute()
+const router = useRouter()
+const display = useDisplay()
+
+function goToPricing() {
+  if (route.name === 'index') {
+    document.querySelector('#pricing')?.scrollIntoView({ behavior: 'smooth' })
+  } else {
+    router.push('/#pricing')
+  }
+}
 </script>
 
 <style lang="scss">

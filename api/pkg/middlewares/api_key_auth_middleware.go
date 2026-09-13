@@ -33,6 +33,7 @@ func APIKeyAuth(logger telemetry.Logger, tracer telemetry.Tracer, userRepository
 		}
 
 		c.Locals(ContextKeyAuthUserID, authUser)
+		c.Locals(ContextKeyAuthSource, AuthSourceAPIKey)
 		return c.Next()
 	}
 }

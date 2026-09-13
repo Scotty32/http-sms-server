@@ -18,13 +18,19 @@ import (
 	"github.com/NdoleStudio/httpsms/pkg/telemetry"
 )
 
+// ErrCodePhoneLimitExceeded is returned when a user tries to register more phones
+// than their plan allows
+const ErrCodePhoneLimitExceeded = stacktrace.ErrorCode(4029)
+
 // PhoneService is handles phone requests
 type PhoneService struct {
 	service
-	logger     telemetry.Logger
-	tracer     telemetry.Tracer
-	repository repositories.PhoneRepository
-	dispatcher *EventDispatcher
+	logger         telemetry.Logger
+	tracer         telemetry.Tracer
+	repository     repositories.PhoneRepository
+	userRepository repositories.UserRepository
+	planRepository repositories.PlanRepository
+	dispatcher     *EventDispatcher
 }
 
 // NewPhoneService creates a new PhoneService
@@ -32,14 +38,55 @@ func NewPhoneService(
 	logger telemetry.Logger,
 	tracer telemetry.Tracer,
 	repository repositories.PhoneRepository,
+	userRepository repositories.UserRepository,
+	planRepository repositories.PlanRepository,
 	dispatcher *EventDispatcher,
 ) (s *PhoneService) {
 	return &PhoneService{
-		logger:     logger.WithService(fmt.Sprintf("%T", s)),
-		tracer:     tracer,
-		dispatcher: dispatcher,
-		repository: repository,
+		logger:         logger.WithService(fmt.Sprintf("%T", s)),
+		tracer:         tracer,
+		dispatcher:     dispatcher,
+		repository:     repository,
+		userRepository: userRepository,
+		planRepository: planRepository,
 	}
+}
+
+// phoneLimit resolves the phone-number limit for a user's plan - preferring the DB-backed
+// entities.Plan catalog and falling back to unlimited (0 = no restriction) if no plan row
+// exists yet, so billing data missing/not-yet-seeded never blocks phone registration.
+func (service *PhoneService) phoneLimit(ctx context.Context, userID entities.UserID) int {
+	user, err := service.userRepository.Load(ctx, userID)
+	if err != nil {
+		return 0
+	}
+
+	plan, err := service.planRepository.LoadByName(ctx, string(user.SubscriptionName))
+	if err != nil {
+		return 0
+	}
+
+	return plan.PhoneLimit
+}
+
+// checkPhoneLimit returns an error if creating one more phone for userID would exceed the plan's limit
+func (service *PhoneService) checkPhoneLimit(ctx context.Context, userID entities.UserID) error {
+	limit := service.phoneLimit(ctx, userID)
+	if limit <= 0 {
+		return nil
+	}
+
+	count, err := service.repository.Count(ctx, userID)
+	if err != nil {
+		return stacktrace.Propagate(err, fmt.Sprintf("cannot count phones for user [%s]", userID))
+	}
+
+	if count >= int64(limit) {
+		msg := fmt.Sprintf("user [%s] has reached their plan's limit of [%d] phone number(s)", userID, limit)
+		return stacktrace.NewErrorWithCode(ErrCodePhoneLimitExceeded, msg)
+	}
+
+	return nil
 }
 
 // DeleteAllForUser deletes all entities.Phone for an entities.UserID.
@@ -240,6 +287,10 @@ func (service *PhoneService) createPhone(ctx context.Context, params *PhoneFCMTo
 	ctx, span, ctxLogger := service.tracer.StartWithLogger(ctx, service.logger)
 	defer span.End()
 
+	if err := service.checkPhoneLimit(ctx, params.UserID); err != nil {
+		return nil, service.tracer.WrapErrorSpan(span, err)
+	}
+
 	phone := &entities.Phone{
 		ID:       uuid.New(),
 		UserID:   params.UserID,
@@ -274,7 +325,7 @@ func (service *PhoneService) createPhoneDeletedEvent(source string, payload even
 }
 
 func (service *PhoneService) update(phone *entities.Phone, params *PhoneUpsertParams) *entities.Phone {
-	if phone.FcmToken != nil {
+	if params.FcmToken != nil {
 		phone.FcmToken = params.FcmToken
 	}
 	if params.MessagesPerMinute != nil && *params.MessagesPerMinute > 0 {

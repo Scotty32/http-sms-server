@@ -26,11 +26,11 @@ func (subscription SubscriptionName) Limit() uint {
 		return 10_000
 	case SubscriptionName20KMonthly, SubscriptionName20KYearly:
 		return 20_000
-	case SubscriptionName50KMonthly:
+	case SubscriptionName50KMonthly, SubscriptionName50KYearly:
 		return 50_000
-	case SubscriptionName100KMonthly:
+	case SubscriptionName100KMonthly, SubscriptionName100KYearly:
 		return 100_000
-	case SubscriptionName200KMonthly:
+	case SubscriptionName200KMonthly, SubscriptionName200KYearly:
 		return 200_000
 	default:
 		return 200
@@ -70,10 +70,21 @@ const SubscriptionName200KMonthly = SubscriptionName("200k-monthly")
 // SubscriptionName20KYearly represents a yearly 20k subscription
 const SubscriptionName20KYearly = SubscriptionName("20k-yearly")
 
+// SubscriptionName50KYearly represents a yearly 50k subscription
+const SubscriptionName50KYearly = SubscriptionName("50k-yearly")
+
+// SubscriptionName100KYearly represents a yearly 100k subscription
+const SubscriptionName100KYearly = SubscriptionName("100k-yearly")
+
+// SubscriptionName200KYearly represents a yearly 200k subscription
+const SubscriptionName200KYearly = SubscriptionName("200k-yearly")
+
 // User stores information about a user
 type User struct {
 	ID                               UserID           `json:"id" gorm:"primaryKey;type:string;" example:"WB7DRDWrJZRGbYrv2CKGkqbzvqdC"`
+	Name                             string           `json:"name" example:"John Doe"`
 	Email                            string           `json:"email" example:"name@email.com"`
+	PasswordHash                     string           `json:"-" gorm:"column:password_hash"`
 	APIKey                           string           `json:"api_key" gorm:"uniqueIndex:idx_users_api_key;NOT NULL" example:"x-api-key"`
 	Timezone                         string           `json:"timezone" example:"Europe/Helsinki" gorm:"default:Africa/Accra"`
 	ActivePhoneID                    *uuid.UUID       `json:"active_phone_id" gorm:"type:uuid;" example:"32343a19-da5e-4b1b-a767-3298a73703cb" validate:"optional"`
@@ -86,6 +97,8 @@ type User struct {
 	NotificationWebhookEnabled       bool             `json:"notification_webhook_enabled" gorm:"default:true" example:"true"`
 	NotificationHeartbeatEnabled     bool             `json:"notification_heartbeat_enabled" gorm:"default:true" example:"true"`
 	NotificationNewsletterEnabled    bool             `json:"notification_newsletter_enabled" gorm:"default:true" example:"true"`
+	WebhookURL                       *string          `json:"webhook_url" example:"https://example.com/sms-delivery" validate:"optional"`
+	WebhookSecret                    *string          `json:"webhook_secret" gorm:"column:webhook_secret" example:"whsec_DGW8NwQp7mxKaSZ72Xq9v6xxxxx" validate:"optional"`
 	CreatedAt                        time.Time        `json:"created_at" example:"2022-06-05T14:26:02.302718+03:00"`
 	UpdatedAt                        time.Time        `json:"updated_at" example:"2022-06-05T14:26:10.303278+03:00"`
 }
