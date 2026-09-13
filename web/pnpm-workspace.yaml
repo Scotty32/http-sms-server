@@ -1,0 +1,8 @@
+onlyBuiltDependencies:
+  - '@parcel/watcher'
+  - core-js
+  - deasync
+  - esbuild
+  - nuxt
+  - unrs-resolver
+  - vue-demi
