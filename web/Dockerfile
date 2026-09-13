@@ -6,7 +6,7 @@ WORKDIR /app
 # install python (needed by some native module builds) and pnpm
 RUN apk add --no-cache python3 && npm install -g pnpm@12.4.1
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
