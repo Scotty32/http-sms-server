@@ -3,18 +3,18 @@ FROM node:lts-alpine as build
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+# install python (needed by some native module builds) and pnpm
+RUN apk add --no-cache python3 && npm install -g pnpm
 
-# install python
-RUN apk add --no-cache python3
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
-RUN npm install
 COPY . .
-RUN npm run generate
+RUN pnpm run generate
 
 # production stage
 FROM nginx:stable-alpine as production
-COPY --from=build /app/dist /usr/share/nginx/html
+COPY --from=build /app/.output/public /usr/share/nginx/html
 
 # Copy the nginx configuration file
 COPY ./nginx.conf /etc/nginx/conf.d/default.conf
