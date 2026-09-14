@@ -25,6 +25,10 @@ import (
 // ErrCodeWebhookTestFailed is returned when a test payload could not be delivered to a candidate webhook URL
 const ErrCodeWebhookTestFailed = stacktrace.ErrorCode(4022)
 
+// v2WebhookUserAgent identifies httpSMS webhook requests, since Go's default "Go-http-client" User-Agent
+// gets flagged by some receivers' bot/WAF protection (e.g. Cloudflare)
+const v2WebhookUserAgent = "httpSMS-webhook/1.0 (+https://httpsms.com)"
+
 // V2DeliveryStatus represents the delivery status sent in the webhook callback
 type V2DeliveryStatus string
 
@@ -147,6 +151,7 @@ func (s *V2WebhookService) sendWithRetry(ctx context.Context, webhookURL string,
 		}
 
 		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("User-Agent", v2WebhookUserAgent)
 		if webhookSecret != "" {
 			mac := hmac.New(sha256.New, []byte(webhookSecret))
 			mac.Write(body)
@@ -199,6 +204,7 @@ func (s *V2WebhookService) TestWebhookURL(ctx context.Context, webhookURL string
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", v2WebhookUserAgent)
 	if webhookSecret != "" {
 		mac := hmac.New(sha256.New, []byte(webhookSecret))
 		mac.Write(body)
