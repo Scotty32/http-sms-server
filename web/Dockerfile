@@ -4,7 +4,7 @@ FROM node:lts-alpine as build
 WORKDIR /app
 
 # install python (needed by some native module builds) and pnpm
-RUN apk add --no-cache python3 && npm install -g pnpm@12.4.1
+RUN apk add --no-cache python3 && npm install -g pnpm@10.34.5
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile

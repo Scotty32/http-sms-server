@@ -157,20 +157,13 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
-
-export default Vue.extend({
+export default {
   name: 'TermsAndConditionsIndex',
   layout: 'website',
-  data() {
-    return {
-      to: '/',
-    }
-  },
   head() {
     return {
       title: 'Terms And Conditions - httpSMS',
     }
   },
-})
+}
 </script>
