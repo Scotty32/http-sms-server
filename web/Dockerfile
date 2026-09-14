@@ -10,7 +10,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
-RUN pnpm run generate
+RUN pnpm exec nuxi generate --dotenv .env.production
 
 # production stage
 FROM nginx:stable-alpine as production
