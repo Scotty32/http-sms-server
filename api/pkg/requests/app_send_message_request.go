@@ -18,6 +18,14 @@ type AppSendMessageRequest struct {
 	Encrypted bool       `json:"encrypted" example:"false"`
 	RequestID string     `json:"request_id" example:"153554b5-ae44-44a0-8f4f-7bbac5657ad4" validate:"optional"`
 	SendAt    *time.Time `json:"send_at" example:"2025-12-19T16:39:57-08:00" validate:"optional"`
+
+	// Operator is the network operator (e.g. orange, mtn, moov) the recipient is on. When set,
+	// the server prefers a sending phone whose SupportedOperators includes it.
+	Operator string `json:"operator" example:"orange" validate:"optional"`
+
+	// Strict forces the server to only use a phone that supports Operator, refusing the send
+	// (no message attempted) if none is configured to support it. Requires Operator to be set.
+	Strict bool `json:"strict" example:"false"`
 }
 
 // Sanitize sets defaults to AppSendMessageRequest
@@ -25,6 +33,7 @@ func (input *AppSendMessageRequest) Sanitize() AppSendMessageRequest {
 	input.To = input.sanitizeAddress(input.To)
 	input.Content = strings.TrimSpace(input.Content)
 	input.RequestID = strings.TrimSpace(input.RequestID)
+	input.Operator = strings.ToLower(strings.TrimSpace(input.Operator))
 	return *input
 }
 

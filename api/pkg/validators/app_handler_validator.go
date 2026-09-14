@@ -4,11 +4,17 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"slices"
 
 	"github.com/NdoleStudio/httpsms/pkg/requests"
 	"github.com/NdoleStudio/httpsms/pkg/telemetry"
 	"github.com/thedevsaddam/govalidator"
 )
+
+// sendMessageOperators is the closed vocabulary of network operators accepted by
+// ValidateSendMessage's "operator" field - kept in sync with the supportedOperators list
+// in phone_handler_validator.go and with App\Enums\PhoneOperator on the omci-listing side.
+var sendMessageOperators = []string{"orange", "mtn", "moov"}
 
 // AppHandlerValidator validates models used in handlers.AppHandler
 type AppHandlerValidator struct {
@@ -100,5 +106,14 @@ func (validator *AppHandlerValidator) ValidateSendMessage(_ context.Context, req
 			},
 		},
 	})
-	return v.ValidateStruct()
+	result := v.ValidateStruct()
+
+	if request.Strict && request.Operator == "" {
+		result.Add("operator", "operator is required when strict is true")
+	}
+	if request.Operator != "" && !slices.Contains(sendMessageOperators, request.Operator) {
+		result.Add("operator", fmt.Sprintf("operator must be one of: %v", sendMessageOperators))
+	}
+
+	return result
 }

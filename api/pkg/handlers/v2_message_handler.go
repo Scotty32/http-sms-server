@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -26,6 +27,7 @@ type V2MessageHandler struct {
 	validator      *validators.AppHandlerValidator
 	messageService *services.MessageService
 	billingService *services.BillingService
+	phoneService   *services.PhoneService
 }
 
 // NewV2MessageHandler creates a new V2MessageHandler
@@ -35,6 +37,7 @@ func NewV2MessageHandler(
 	validator *validators.AppHandlerValidator,
 	messageService *services.MessageService,
 	billingService *services.BillingService,
+	phoneService *services.PhoneService,
 ) (h *V2MessageHandler) {
 	return &V2MessageHandler{
 		logger:         logger.WithService(fmt.Sprintf("%T", h)),
@@ -42,6 +45,7 @@ func NewV2MessageHandler(
 		validator:      validator,
 		messageService: messageService,
 		billingService: billingService,
+		phoneService:   phoneService,
 	}
 }
 
@@ -52,9 +56,39 @@ func (h *V2MessageHandler) RegisterRoutes(router fiber.Router, middlewares ...fi
 }
 
 // v2Error responds with the {"error": "CODE"} envelope, using the exact SmsErrorCode
-// vocabulary expected by the calling provider-integration contract.
+// vocabulary expected by the calling provider-integration contract. Known codes:
+// API_KEY_INVALID (401), FORBIDDEN (403, app has no phone numbers configured),
+// INTERNAL_ERROR, INVALID_PHONE_NUMBER / EMPTY_MESSAGE (422, validation), MESSAGE_SEND_FAILED
+// (502), NO_OPERATOR_AVAILABLE (422, strict=true but no configured phone supports the operator).
 func (h *V2MessageHandler) v2Error(c *fiber.Ctx, status int, code string) error {
 	return c.Status(status).JSON(fiber.Map{"error": code})
+}
+
+// resolveFromNumber picks the sending phone number from authCtx.PhoneNumbers given the
+// request's operator/strict constraints:
+//   - no operator            → first number, zero extra DB calls (unchanged legacy behavior)
+//   - operator, not strict   → prefer a number that supports it; fall back to the first number
+//     if none matches (best-effort)
+//   - operator, strict=true  → must find a match or return an error; no send is attempted
+func (h *V2MessageHandler) resolveFromNumber(ctx context.Context, authCtx entities.AuthContext, request requests.AppSendMessageRequest) (string, error) {
+	if request.Operator == "" {
+		return authCtx.PhoneNumbers[0], nil
+	}
+
+	for _, number := range authCtx.PhoneNumbers {
+		phone, err := h.phoneService.Load(ctx, authCtx.ID, number)
+		if err != nil {
+			continue
+		}
+		if phone.SupportsOperator(request.Operator) {
+			return number, nil
+		}
+	}
+
+	if request.Strict {
+		return "", fmt.Errorf("no configured phone number supports operator [%s]", request.Operator)
+	}
+	return authCtx.PhoneNumbers[0], nil
 }
 
 func (h *V2MessageHandler) authContext(c *fiber.Ctx) (entities.AuthContext, bool) {
@@ -95,7 +129,12 @@ func (h *V2MessageHandler) PostSend(c *fiber.Ctx) error {
 		return h.v2Error(c, fiber.StatusPaymentRequired, "INTERNAL_ERROR")
 	}
 
-	from := authCtx.PhoneNumbers[0]
+	from, err := h.resolveFromNumber(ctx, authCtx, request)
+	if err != nil {
+		ctxLogger.Warn(stacktrace.Propagate(err, fmt.Sprintf("cannot resolve a sending number for user [%s]", authCtx.ID)))
+		return h.v2Error(c, fiber.StatusUnprocessableEntity, "NO_OPERATOR_AVAILABLE")
+	}
+
 	message, err := h.messageService.SendMessage(ctx, request.ToMessageSendParams(authCtx.ID, authCtx.AppID, from, c.OriginalURL()))
 	if err != nil {
 		ctxLogger.Error(stacktrace.Propagate(err, fmt.Sprintf("cannot send v2 message for user [%s]", authCtx.ID)))

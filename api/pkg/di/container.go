@@ -1787,6 +1787,7 @@ func (container *Container) V2MessageHandler() (handler *handlers.V2MessageHandl
 		container.AppHandlerValidator(),
 		container.MessageService(),
 		container.BillingService(),
+		container.PhoneService(),
 	)
 }
 

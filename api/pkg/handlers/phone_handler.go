@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 
+	"github.com/NdoleStudio/httpsms/pkg/repositories"
 	"github.com/NdoleStudio/httpsms/pkg/requests"
 	"github.com/NdoleStudio/httpsms/pkg/validators"
 	"github.com/davecgh/go-spew/spew"
@@ -42,6 +43,7 @@ func (h *PhoneHandler) RegisterRoutes(router fiber.Router, middlewares ...fiber.
 	router.Get("/v1/phones", h.computeRoute(middlewares, h.Index)...)
 	router.Put("/v1/phones", h.computeRoute(middlewares, h.Upsert)...)
 	router.Delete("/v1/phones/:phoneID", h.computeRoute(middlewares, h.Delete)...)
+	router.Put("/v1/phones/:phoneID/operators", h.computeRoute(middlewares, h.UpdateOperators)...)
 }
 
 // RegisterPhoneAPIKeyRoutes registers the routes for the PhoneHandler
@@ -223,4 +225,55 @@ func (h *PhoneHandler) UpsertFCMToken(c *fiber.Ctx) error {
 	}
 
 	return h.responseOK(c, "FCM token updated successfully", phone)
+}
+
+// UpdateOperators configures the network operators a phone supports. This is an owner/admin-only
+// operation (e.g. called directly by the OMCI integration operator), not something the Android
+// app calls as part of its normal self-registration flow.
+// @Summary      Update the network operators a phone supports
+// @Description  Configures the list of network operators (e.g. orange, mtn, moov) a phone/SIM can send to
+// @Security	 ApiKeyAuth
+// @Tags         Phones
+// @Accept       json
+// @Produce      json
+// @Param 		 phoneID 	path		string 									true 	"ID of the phone"	default(32343a19-da5e-4b1b-a767-3298a73703ca)
+// @Param        payload   	body 		requests.PhoneOperatorsUpdate  			true 	"Payload of supported operators."
+// @Success      200 		{object}	responses.PhoneResponse
+// @Failure      400		{object}	responses.BadRequest
+// @Failure 	 401    	{object}	responses.Unauthorized
+// @Failure      404		{object}	responses.NotFound
+// @Failure      422		{object}	responses.UnprocessableEntity
+// @Failure      500		{object}	responses.InternalServerError
+// @Router       /phones/{phoneID}/operators [put]
+func (h *PhoneHandler) UpdateOperators(c *fiber.Ctx) error {
+	ctx, span := h.tracer.StartFromFiberCtx(c)
+	defer span.End()
+
+	ctxLogger := h.tracer.CtxLogger(h.logger, span)
+
+	var request requests.PhoneOperatorsUpdate
+	if err := c.BodyParser(&request); err != nil {
+		msg := fmt.Sprintf("cannot marshall params [%s] into %T", c.OriginalURL(), request)
+		ctxLogger.Warn(stacktrace.Propagate(err, msg))
+		return h.responseBadRequest(c, err)
+	}
+	request.PhoneID = c.Params("phoneID")
+
+	if errors := h.validator.ValidateUpdateOperators(ctx, request.Sanitize()); len(errors) != 0 {
+		msg := fmt.Sprintf("validation errors [%s], while updating phone operators [%+#v]", spew.Sdump(errors), request)
+		ctxLogger.Warn(stacktrace.NewError(msg))
+		return h.responseUnprocessableEntity(c, errors, "validation errors while updating phone operators")
+	}
+
+	phone, err := h.service.UpdateOperators(ctx, request.ToUpdateOperatorsParams(h.userIDFomContext(c), request.PhoneIDUuid(), c.OriginalURL()))
+	if stacktrace.GetCode(err) == repositories.ErrCodeNotFound {
+		return h.responseNotFound(c, "phone not found")
+	}
+	if err != nil {
+		msg := fmt.Sprintf("cannot update phone operators with params [%+#v]", request)
+		ctxLogger.Error(stacktrace.Propagate(err, msg))
+		return h.responseInternalServerError(c)
+	}
+
+	return h.responseOK(c, "phone operators updated successfully", phone)
 }

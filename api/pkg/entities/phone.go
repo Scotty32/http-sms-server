@@ -1,9 +1,11 @@
 package entities
 
 import (
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 // Phone represents an android phone which has installed the http sms app
@@ -16,6 +18,11 @@ type Phone struct {
 	SIM               SIM       `json:"sim" gorm:"default:SIM1"`
 	// MaxSendAttempts determines how many times to retry sending an SMS message
 	MaxSendAttempts uint `json:"max_send_attempts" example:"2"`
+
+	// SupportedOperators is the list of network operators (e.g. "orange", "mtn", "moov") this
+	// phone/SIM can send to. Empty/nil means "supports any operator" (generic/unconfigured),
+	// so existing phones keep working unmodified after this field was introduced.
+	SupportedOperators pq.StringArray `json:"supported_operators" example:"orange,mtn" gorm:"type:text[]" swaggertype:"array,string"`
 
 	// MessageExpirationSeconds is the duration in seconds after sending a message when it is considered to be expired.
 	MessageExpirationSeconds uint `json:"message_expiration_seconds"`
@@ -45,4 +52,18 @@ func (phone *Phone) MaxSendAttemptsSanitized() uint {
 		return 2
 	}
 	return phone.MaxSendAttempts
+}
+
+// SupportsOperator returns true if the phone can send to the given network operator.
+// A phone with no SupportedOperators configured is treated as generic (supports any operator).
+func (phone *Phone) SupportsOperator(operator string) bool {
+	if len(phone.SupportedOperators) == 0 {
+		return true
+	}
+	for _, supported := range phone.SupportedOperators {
+		if strings.EqualFold(supported, operator) {
+			return true
+		}
+	}
+	return false
 }

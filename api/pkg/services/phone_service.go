@@ -324,6 +324,36 @@ func (service *PhoneService) createPhoneDeletedEvent(source string, payload even
 	return service.createEvent(events.EventTypePhoneDeleted, source, payload)
 }
 
+// PhoneOperatorsUpdateParams are parameters for configuring a phone's supported network operators
+type PhoneOperatorsUpdateParams struct {
+	Source             string
+	UserID             entities.UserID
+	PhoneID            uuid.UUID
+	SupportedOperators []string
+}
+
+// UpdateOperators sets the list of network operators a phone supports
+func (service *PhoneService) UpdateOperators(ctx context.Context, params *PhoneOperatorsUpdateParams) (*entities.Phone, error) {
+	ctx, span, ctxLogger := service.tracer.StartWithLogger(ctx, service.logger)
+	defer span.End()
+
+	phone, err := service.repository.LoadByID(ctx, params.UserID, params.PhoneID)
+	if err != nil {
+		msg := fmt.Sprintf("cannot load phone with id [%s] for user [%s]", params.PhoneID, params.UserID)
+		return nil, service.tracer.WrapErrorSpan(span, stacktrace.Propagate(err, msg))
+	}
+
+	phone.SupportedOperators = params.SupportedOperators
+
+	if err = service.repository.Save(ctx, phone); err != nil {
+		msg := fmt.Sprintf("cannot save supported operators for phone with id [%s]", phone.ID)
+		return nil, service.tracer.WrapErrorSpan(span, stacktrace.Propagate(err, msg))
+	}
+
+	ctxLogger.Info(fmt.Sprintf("updated supported operators for phone [%s]: %v", phone.ID, phone.SupportedOperators))
+	return phone, nil
+}
+
 func (service *PhoneService) update(phone *entities.Phone, params *PhoneUpsertParams) *entities.Phone {
 	if params.FcmToken != nil {
 		phone.FcmToken = params.FcmToken

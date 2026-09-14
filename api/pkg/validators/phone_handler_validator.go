@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/NdoleStudio/httpsms/pkg/entities"
@@ -135,4 +136,35 @@ func (validator *PhoneHandlerValidator) ValidateDelete(_ context.Context, reques
 	})
 
 	return v.ValidateStruct()
+}
+
+// supportedOperators is the closed vocabulary of network operators accepted by
+// ValidateUpdateOperators - kept in sync with App\Enums\PhoneOperator on the omci-listing side.
+var supportedOperators = []string{"orange", "mtn", "moov"}
+
+// ValidateUpdateOperators validates requests.PhoneOperatorsUpdate
+func (validator *PhoneHandlerValidator) ValidateUpdateOperators(_ context.Context, request requests.PhoneOperatorsUpdate) url.Values {
+	v := govalidator.New(govalidator.Options{
+		Data: &request,
+		Rules: govalidator.MapData{
+			"phoneID": []string{
+				"required",
+				"uuid",
+			},
+		},
+	})
+
+	result := v.ValidateStruct()
+
+	for _, operator := range request.SupportedOperators {
+		if !slices.Contains(supportedOperators, operator) {
+			result.Add("supported_operators", fmt.Sprintf(
+				"supported_operators contains an unknown operator [%s], allowed values are: %s",
+				operator, strings.Join(supportedOperators, ", "),
+			))
+			break
+		}
+	}
+
+	return result
 }
