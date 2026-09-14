@@ -9,6 +9,7 @@
 
 services:
   postgres:
+    container_name: httpsms-postgres
     image: postgres:16
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -27,6 +28,7 @@ services:
       start_period: 5s
 
   redis:
+    container_name: httpsms-redis
     image: redis:latest
     command: redis-server
     volumes:
@@ -42,6 +44,7 @@ services:
       start_period: 5s
 
   api:
+    container_name: httpsms-api
     build:
       context: ./api
       args:
@@ -94,6 +97,7 @@ services:
     restart: unless-stopped
 
   web:
+    container_name: httpsms-web
     build:
       context: ./web
     expose:
