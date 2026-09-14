@@ -21,7 +21,8 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=$GI
 
 FROM alpine:latest
 
-RUN addgroup -S http-sms && adduser -S http-sms -G http-sms
+RUN addgroup -S http-sms && adduser -S http-sms -G http-sms \
+    && mkdir -p /app/logs && chown -R http-sms:http-sms /app/logs
 
 USER http-sms
 WORKDIR /home/http-sms
