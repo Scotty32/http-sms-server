@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -204,6 +205,8 @@ func (s *V2WebhookService) TestWebhookURL(ctx context.Context, webhookURL string
 		req.Header.Set("x-webhook-signature", "sha256="+hex.EncodeToString(mac.Sum(nil)))
 	}
 
+	ctxLogger.Info(fmt.Sprintf("sending webhook test request [%s %s], headers %+v, body [%s]", req.Method, webhookURL, req.Header, string(body)))
+
 	resp, err := s.client.Do(req)
 	if err != nil {
 		ctxLogger.Warn(stacktrace.Propagate(err, fmt.Sprintf("webhook test request failed for url [%s]", webhookURL)))
@@ -211,11 +214,17 @@ func (s *V2WebhookService) TestWebhookURL(ctx context.Context, webhookURL string
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return stacktrace.NewErrorWithCode(ErrCodeWebhookTestFailed, fmt.Sprintf("webhook url [%s] responded with status [%d]", webhookURL, resp.StatusCode))
+	responseBody, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if err != nil {
+		ctxLogger.Warn(stacktrace.Propagate(err, fmt.Sprintf("cannot read webhook test response body for url [%s]", webhookURL)))
 	}
 
-	ctxLogger.Info(fmt.Sprintf("webhook test succeeded for url [%s] with status [%d]", webhookURL, resp.StatusCode))
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		ctxLogger.Warn(stacktrace.NewError(fmt.Sprintf("webhook test response [%s %s], status [%d], headers %+v, body [%s]", req.Method, webhookURL, resp.StatusCode, resp.Header, string(responseBody))))
+		return stacktrace.NewErrorWithCode(ErrCodeWebhookTestFailed, fmt.Sprintf("webhook url [%s] responded with status [%d], body [%s]", webhookURL, resp.StatusCode, string(responseBody)))
+	}
+
+	ctxLogger.Info(fmt.Sprintf("webhook test succeeded for url [%s] with status [%d], body [%s]", webhookURL, resp.StatusCode, string(responseBody)))
 	return nil
 }
 
